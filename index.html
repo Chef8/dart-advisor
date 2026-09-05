@@ -1,0 +1,1547 @@
+/* =========================================================================
+ * Dart Out & Setup Advisor | Hybrid Parity Engine
+ * Copyright (c) 2026 John Phillip Amarante. All rights reserved.
+ * 
+ * - Software & Engine: Free for personal, non-commercial use only.
+ * - Tactical Notes & Database Content: Licensed under CC BY-NC-SA 4.0.
+ * Commercial redistribution or integration into paid tools is strictly prohibited.
+ * ========================================================================= */<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Dart Out &amp; Setup Advisor | Hybrid Parity Engine</title>
+  <style>
+    :root {
+      --bg: #0d1117; --panel: #161b22; --card: #21262d; --accent: #58a6ff; --border: #30363d;
+      --text: #f0f6fc; --text-muted: #8b949e;
+      --best: #238636; --best-bg: rgba(35, 134, 54, 0.15);
+      --alt: #d29922; --alt-bg: rgba(210, 153, 34, 0.15);
+      --avoid: #da3633; --avoid-bg: rgba(218, 54, 51, 0.15);
+      --setup: #8957e5; --setup-bg: rgba(137, 87, 229, 0.15);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      background: var(--bg); color: var(--text); margin: 0; padding: 12px; 
+      display: flex; justify-content: center; 
+    }
+    .container { width: 100%; max-width: 480px; }
+
+    /* Top App Header */
+    .app-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px; padding: 0 4px;
+    }
+    .app-title { font-size: 1.1rem; font-weight: 700; margin: 0; color: #fff; letter-spacing: -0.01em; }
+    .app-subtitle { font-size: 0.72rem; color: var(--text-muted); display: block; }
+    .btn-about-header {
+      background: var(--panel); border: 1px solid var(--border); color: var(--text-muted);
+      padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-about-header:hover { color: #fff; border-color: var(--accent); }
+
+    /* Controls & Panels */
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+    .section-label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; display: block; }
+    .dart-toggle { display: flex; gap: 6px; }
+    .dart-btn { flex: 1; padding: 10px 0; font-size: 0.95rem; font-weight: 600; background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; }
+    .dart-btn.active { background: #1f6feb; border-color: var(--accent); color: #fff; }
+
+    /* Display Row with Integrated Voice Action */
+    .display-row { 
+      display: flex; justify-content: space-between; align-items: center; 
+      background: #090d13; border: 1px solid var(--border); border-radius: 6px; 
+      padding: 6px 12px; margin-bottom: 8px; 
+    }
+    .score-display { font-size: 2.2rem; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff; }
+    .mic-btn {
+      display: flex; align-items: center; gap: 6px; background: var(--card); 
+      border: 1px solid var(--border); color: var(--text); padding: 8px 14px; 
+      border-radius: 6px; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .mic-btn.listening {
+      background: #da3633; border-color: #f85149; color: #fff;
+      animation: pulse-mic 1.2s infinite;
+    }
+    @keyframes pulse-mic {
+      0% { box-shadow: 0 0 0 0 rgba(218, 54, 51, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(218, 54, 51, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(218, 54, 51, 0); }
+    }
+
+    /* Keypad */
+    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .keypad button { background: var(--card); border: 1px solid var(--border); color: var(--text); font-size: 1.25rem; font-weight: 600; padding: 10px 0; border-radius: 6px; cursor: pointer; }
+    .keypad button:active { background: #30363d; }
+
+    /* Cards */
+    #resultsContainer { display: flex; flex-direction: column; gap: 8px; }
+    .out-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; border-left-width: 5px; position: relative; }
+    .out-card.best { border-left-color: #3fb950; background: linear-gradient(90deg, var(--best-bg) 0%, var(--panel) 100%); }
+    .out-card.alt { border-left-color: var(--alt); background: linear-gradient(90deg, var(--alt-bg) 0%, var(--panel) 100%); }
+    .out-card.avoid { border-left-color: var(--avoid); background: linear-gradient(90deg, var(--avoid-bg) 0%, var(--panel) 100%); }
+    .out-card.setup { border-left-color: var(--setup); background: linear-gradient(90deg, var(--setup-bg) 0%, var(--panel) 100%); }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .badge { display: inline-block; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; margin-bottom: 4px; }
+    .badge.best { background: var(--best); color: #fff; } .badge.alt { background: var(--alt); color: #fff; } .badge.avoid { background: var(--avoid); color: #fff; } .badge.setup { background: var(--setup); color: #fff; }
+    .route-line { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.02em; }
+    .miss-branches { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+    .miss-branch { font-size: 0.85rem; color: #e3b341; font-weight: 500; line-height: 1.35; display: flex; align-items: baseline; gap: 6px; }
+    .miss-arrow { color: var(--text-muted); font-weight: 700; user-select: none; }
+    .details-toggle { font-size: 0.8rem; color: var(--accent); cursor: pointer; margin-top: 6px; user-select: none; }
+    .notes-box { display: none; font-size: 0.85rem; line-height: 1.4; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 8px; }
+    .notes-box.open { display: block; }
+    .btn-edit-card { font-size: 0.75rem; color: var(--text-muted); background: none; border: none; cursor: pointer; text-decoration: underline; padding: 0; }
+    .action-bar { display: flex; justify-content: space-between; margin-top: 8px; }
+    .utility-link { color: var(--accent); font-size: 0.8rem; text-decoration: none; cursor: pointer; }
+
+    /* Modals */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 50; padding: 16px; align-items: center; justify-content: center; }
+    .modal-content { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; width: 100%; max-width: 440px; padding: 16px; }
+    .form-group { margin-bottom: 12px; } .form-group label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; background: #090d13; border: 1px solid var(--border); color: #fff; font-size: 0.9rem; padding: 8px; border-radius: 4px; font-family: inherit; }
+    .modal-actions { display: flex; justify-content: space-between; margin-top: 16px; }
+    .btn-clear { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: 4px; cursor: pointer; }
+
+    /* About Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background-color: rgba(10, 14, 20, 0.8);
+      backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;
+      padding: 1rem; z-index: 1000;
+    }
+    .modal-backdrop[hidden] { display: none; }
+    .modal-card {
+      background-color: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      width: 100%; max-width: 580px; max-height: 85vh; display: flex; flex-direction: column;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); color: #c9d1d9;
+    }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
+    .modal-header h2 { margin: 0; font-size: 1.2rem; font-weight: 700; color: #fff; }
+    .modal-close { background: transparent; border: none; color: var(--text-muted); font-size: 1.75rem; cursor: pointer; padding: 0 0.5rem; line-height: 1; }
+    .modal-close:hover { color: #fff; }
+    .modal-body { padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem; line-height: 1.5; font-size: 0.9rem; }
+    .modal-body h3 { margin: 0 0 0.5rem 0; font-size: 1rem; color: var(--accent); font-weight: 600; }
+    .modal-body ul { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Top App Header with Repositioned About Button -->
+  <header class="app-header">
+    <div>
+      <h1 class="app-title">Dart Advisor</h1>
+      <span class="app-subtitle">Hybrid Parity &amp; Recovery Engine</span>
+    </div>
+    <button id="btn-about" class="btn-about-header" type="button" aria-haspopup="dialog" aria-controls="about-modal">ⓘ About</button>
+  </header>
+
+  <!-- Darts Inventory Toggle -->
+  <div class="panel">
+    <span class="section-label">Darts In Hand</span>
+    <div class="dart-toggle">
+      <button class="dart-btn" id="btnDarts3" onclick="setDarts(3)">3 Darts</button>
+      <button class="dart-btn" id="btnDarts2" onclick="setDarts(2)">2 Darts</button>
+      <button class="dart-btn" id="btnDarts1" onclick="setDarts(1)">1 Dart</button>
+    </div>
+  </div>
+
+  <!-- Score Display with Integrated Voice Input Action -->
+  <div class="panel">
+    <span class="section-label">Current Score (2 – 501)</span>
+    <div class="display-row">
+      <div class="score-display" id="scoreDisplay">—</div>
+      <button id="btnVoice" class="mic-btn" type="button" title="Voice Input (e.g. '2 darts, 76')">
+        <span id="micIcon">🎙</span> <span id="micLabel">Voice</span>
+      </button>
+    </div>
+    <div class="keypad">
+      <button onclick="pressNum('1')">1</button><button onclick="pressNum('2')">2</button><button onclick="pressNum('3')">3</button>
+      <button onclick="pressNum('4')">4</button><button onclick="pressNum('5')">5</button><button onclick="pressNum('6')">6</button>
+      <button onclick="pressNum('7')">7</button><button onclick="pressNum('8')">8</button><button onclick="pressNum('9')">9</button>
+      <button onclick="backspace()">⌫</button><button onclick="pressNum('0')">0</button><button onclick="clearScore()">C</button>
+    </div>
+  </div>
+
+  <div id="resultsContainer"></div>
+
+  <div class="action-bar" id="actionBar" style="display:none;">
+    <span class="utility-link" onclick="openAddModal()">+ Add Custom Route for this Score</span>
+    <span class="utility-link" onclick="resetToDefaults()">Reset Defaults</span>
+  </div>
+</div>
+
+<!-- Accessible About Modal -->
+<div id="about-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="about-title" hidden>
+  <div class="modal-card">
+    <header class="modal-header">
+      <h2 id="about-title">How This Advisor Works</h2>
+      <button id="btn-close-about" class="modal-close" type="button" aria-label="Close dialog">&times;</button>
+    </header>
+    <div class="modal-body">
+      <section>
+        <h3>Why We Built This</h3>
+        <p>
+          For decades, dart players have relied on laminated poster charts or advice handed down across pub boards. While iconic, much of that traditional wisdom was invented in the 1970s and 1980s without the benefit of real data. Those charts assume you hit every treble you aim for, leaving you stranded with no plan when a dart drifts into a single.
+        </p>
+        <p>
+          Modern PDC match telemetry and statistical analysis have proven that many classic routes are unnecessarily risky. Today's elite game is about <strong>high-percentage recovery</strong>: taking paths that maximize your scoring surface, keep your throwing rhythm along natural vertical corridors, and leave clean double options even on a misfire.
+        </p>
+        <p>
+          Whether you are learning your first 2-dart checkouts or competing in league finals, this advisor replaces outdated chart habits with scientifically proven percentages—giving you the exact route and immediate recovery line for every dart in your hand.
+        </p>
+    </section>
+
+    <section>
+      <h3>How the Advisor Thinks</h3>
+      <ul>
+        <li>
+          <strong>Track Every Dart:</strong> Options adapt instantly based on whether you have 3, 2, or 1 dart in hand. If your first dart catches a fat single, the advice immediately maps how to rescue the turn.
+        </li>
+        <li>
+          <strong>Friendly Doubles First:</strong> The engine prioritizes doubles that divide cleanly in half—like D16, Tops, D8, and D12. If you miss on the inside wire into a single, you still have an active double left without burning extra darts to adjust.
+        </li>
+        <li>
+          <strong>Smooth Arm Mechanics:</strong> Changing throwing angles across the board costs rhythm. Target paths keep your arm moving naturally down vertical channels whenever possible.
+        </li>
+        <li>
+          <strong>Your Style, Your Shot:</strong> When two routes offer equal mathematical odds (like playing for Tops versus building for D16), both are highlighted. You decide what feels best in your hand.
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h3>Route Legend</h3>
+      <ul>
+        <li><span class="badge best">Best</span> High-percentage tournament standards and co-equal baselines.</li>
+        <li><span class="badge alt">Alt</span> Wire-block pivots, personal preference routes, and smart percentage plays.</li>
+        <li><span class="badge avoid">Avoid</span> Common match traps that leave dead-ends on single misses.</li>
+        <li><span class="badge setup">Setup</span> Deliberate positioning shots when an out isn't mathematically possible.</li>
+      </ul>
+    </section>
+
+    <section class="modal-footer-note">
+      <p style="font-size: 0.78rem; line-height: 1.4; color: var(--text-muted); margin: 0;">
+      <strong>License &amp; Terms:</strong> Free for personal, non-commercial oche practice. Tactical database and written strategy licensed under 
+      <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: underline;">CC BY-NC-SA 4.0</a>. Commercial reproduction, scraping, or embedding in paid systems is strictly prohibited.
+      </p>
+    </section>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Route Editor Modal -->
+<div class="modal" id="formModal">
+  <div class="modal-content">
+    <h3 style="margin-top:0;" id="formTitle">Edit Route</h3>
+    <input type="hidden" id="editIndex" value="-1">
+    <div class="form-group">
+      <label>Quality Grade</label>
+      <select id="formTier">
+        <option value="best">Best Option (Green)</option>
+        <option value="alt">2nd Choice / Alternative (Amber)</option>
+        <option value="avoid">Avoid This / Trap (Red)</option>
+        <option value="setup">Setup Strategy (Purple)</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Target Route</label><input type="text" id="formRoute" placeholder="e.g. T17 → D8 or S16"></div>
+    <div class="form-group"><label>Miss Safe-Zone / Branch</label><input type="text" id="formMiss" placeholder="e.g. If S20 : T20 → D5 | If S20 → S20 : D25"></div>
+    <div class="form-group"><label>Tactical Explanation / Notes</label><textarea id="formNote" rows="3" placeholder="Explain the mechanics, pressure logic, or why this avoids bogey traps..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-clear" style="color:var(--avoid);" id="btnDeleteRoute" onclick="deleteCurrentRoute()">Delete</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-clear" onclick="closeFormModal()">Cancel</button>
+        <button class="btn-clear" style="background:#1f6feb; color:#fff;" onclick="saveFormRoute()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   1. APPLICATION STATE & UI CONTROLLERS (LIGHTWEIGHT LOGIC LAYER)
+   ========================================================================= */
+let currentScore = "";
+let dartsInHand = 3;
+
+function getDb() { 
+  const local = localStorage.getItem("dart_tactical_hybrid_v3"); 
+  return local ? JSON.parse(local) : defaultDb; 
+}
+function saveDb(db) { localStorage.setItem("dart_tactical_hybrid_v3", JSON.stringify(db)); }
+function setDarts(n) { 
+  dartsInHand = n; 
+  [1, 2, 3].forEach(i => document.getElementById(`btnDarts${i}`).classList.toggle('active', i === n)); 
+  renderDisplay(); 
+}
+function pressNum(d) { if (currentScore.length >= 3) return; currentScore += d; updateScoreDisplay(); }
+function backspace() { currentScore = currentScore.slice(0, -1); updateScoreDisplay(); }
+function clearScore() { currentScore = ""; updateScoreDisplay(); }
+function updateScoreDisplay() { document.getElementById('scoreDisplay').innerText = currentScore || "—"; renderDisplay(); }
+
+/* =========================================================================
+   2. VOICE CONTROL ENGINE (SpeechRecognition + Simulation Fallback)
+   ========================================================================= */
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+const btnVoice = document.getElementById('btnVoice');
+const micLabel = document.getElementById('micLabel');
+let recognition = null;
+
+if (SpeechRec) {
+  recognition = new SpeechRec();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+
+  recognition.onstart = () => {
+    btnVoice.classList.add('listening');
+    micLabel.innerText = "Listening...";
+  };
+
+  recognition.onend = () => {
+    btnVoice.classList.remove('listening');
+    micLabel.innerText = "Voice";
+  };
+
+  recognition.onerror = () => {
+    btnVoice.classList.remove('listening');
+    micLabel.innerText = "Voice";
+  };
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript.toLowerCase();
+    parseDartsVoice(transcript);
+  };
+
+  btnVoice.addEventListener('click', () => {
+    try { recognition.start(); } catch(e) { recognition.stop(); }
+  });
+} else {
+  // Desktop Firefox Fallback: Simulated Voice Prompt
+  btnVoice.title = "Browser lacks mic input. Click to test voice simulation!";
+  btnVoice.addEventListener('click', () => {
+    const simulatedSpeech = prompt("Voice Simulator (Firefox fallback):\nSay something like '2 darts 76' or '82 with 3 darts':", "2 darts 76");
+    if (simulatedSpeech) {
+      parseDartsVoice(simulatedSpeech.toLowerCase());
+    }
+  });
+}
+
+function parseDartsVoice(text) {
+  // Extract darts count (e.g. "2 darts", "with 3 darts", "one dart")
+  let dCount = null;
+  if (text.includes("3") || text.includes("three")) dCount = 3;
+  else if (text.includes("2") || text.includes("two")) dCount = 2;
+  else if (text.includes("1") || text.includes("one")) dCount = 1;
+
+  // Extract score (between 2 and 501, or verbal "tops" / "bull")
+  let scoreVal = null;
+  if (text.includes("tops")) scoreVal = 40;
+  else if (text.includes("bullseye") || text.includes("bull")) scoreVal = 50;
+  else {
+    const match = text.match(/\b([2-9]|[1-9][0-9]|[1-4][0-9]{2}|50[0-1])\b/);
+    if (match) scoreVal = parseInt(match[1], 10);
+  }
+
+  if (dCount) setDarts(dCount);
+  if (scoreVal) {
+    currentScore = scoreVal.toString();
+    updateScoreDisplay();
+    speakRecommendation(`${scoreVal}_${dartsInHand}`);
+  }
+}
+
+function speakRecommendation(key) {
+  if (!window.speechSynthesis) return;
+  const db = getDb();
+  const entries = db[key];
+  if (!entries || entries.length === 0) return;
+
+  const topRoute = entries.find(e => e.type === 'best') || entries[0];
+  const speechText = topRoute.route
+    .replace(/→/g, 'then')
+    .replace(/T(\d+)/g, 'Triple $1, ')
+    .replace(/D(\d+)/g, 'Double $1')
+    .replace(/S(\d+)/g, 'Single $1, ')
+    .replace(/D25/g, 'Bullseye')
+    .replace(/25/g, 'Single Bull');
+
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(speechText);
+  utterance.rate = 1.0;
+  window.speechSynthesis.speak(utterance);
+}
+
+/* =========================================================================
+   3. ABOUT MODAL HANDLERS
+   ========================================================================= */
+const aboutBtn = document.getElementById('btn-about');
+const aboutModal = document.getElementById('about-modal');
+const closeAboutBtn = document.getElementById('btn-close-about');
+
+function openAboutModal() { aboutModal.removeAttribute('hidden'); closeAboutBtn.focus(); }
+function closeAboutModal() { aboutModal.setAttribute('hidden', ''); aboutBtn.focus(); }
+
+if (aboutBtn && aboutModal && closeAboutBtn) {
+  aboutBtn.addEventListener('click', openAboutModal);
+  closeAboutBtn.addEventListener('click', closeAboutModal);
+  aboutModal.addEventListener('click', (e) => { if (e.target === aboutModal) closeAboutModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !aboutModal.hasAttribute('hidden')) closeAboutModal(); });
+}
+
+/* =========================================================================
+   4. DYNAMIC CALCULATION & RENDERING ENGINE
+   ========================================================================= */
+function getSafetyScore(s, isOdd) {
+  if (isOdd) {
+    if ([19, 3, 7].includes(s)) return 3;
+    if ([17, 15].includes(s)) return 2;
+    return 1;
+  } else {
+    if ([10, 6].includes(s)) return 3;
+    if ([16, 8].includes(s)) return 2;
+    if ([2, 4, 12, 14].includes(s)) return -2;
+    return 1;
+  }
+}
+
+function computeSetupShot(score, darts) {
+  if (darts === 1) {
+    // Exact 1-dart out handled by engine (D25 on 50, direct doubles <= 40)
+    if (score === 50 || (score <= 40 && score % 2 === 0)) return null;
+
+    // 1 DART ON ODD SCORES (41 to 59): Must throw at an odd single to leave an even double
+    if (score % 2 !== 0 && score <= 59) {
+      // Priority 1: Single that leaves Tops (40) and accidental treble does not bust
+      const singleToTops = score - 40;
+      if (singleToTops >= 1 && singleToTops <= 19 && (singleToTops * 3) < score) {
+        const trebleLeaf = score - (singleToTops * 3);
+        const trebleNote = trebleLeaf % 2 === 0 ? `accidental T${singleToTops} leaves D${trebleLeaf / 2}` : `accidental T${singleToTops} leaves ${trebleLeaf}`;
+        return {
+          route: `Aim S${singleToTops} (Leaves Tops)`,
+          miss: `S${singleToTops} leaves 40 | ${trebleNote}`,
+          note: `Never throw at 20 on an odd total. S${singleToTops} sets up Tops for your next visit, and an accidental treble cannot bust.`
+        };
+      }
+
+      // Priority 2: Single that leaves D16 (32)
+      const singleTo32 = score - 32;
+      if (singleTo32 >= 1 && singleTo32 <= 19 && (singleTo32 * 3) < score) {
+        const trebleLeaf = score - (singleTo32 * 3);
+        return {
+          route: `Aim S${singleTo32} (Leaves D16)`,
+          miss: `S${singleTo32} leaves 32 | accidental T${singleTo32} leaves ${trebleLeaf}`,
+          note: `S${singleTo32} sets up premier parity double D16 for next turn without risk of busting on a treble.`
+        };
+      }
+    }
+
+    // 1 DART ON EVEN SCORES (42 to 60): Steer to Tops or D16 with bust-safe trebles
+    if (score % 2 === 0 && score > 40 && score <= 60) {
+      // If S(score - 40) is bust-safe to Tops
+      const singleToTops = score - 40;
+      if (singleToTops >= 2 && singleToTops <= 20) {
+        const trebleBust = (singleToTops * 3) >= score;
+        return {
+          route: `Aim S${singleToTops} (Leaves Tops)`,
+          miss: trebleBust ? `Caution: T${singleToTops} busts` : `Accidental T${singleToTops} leaves D${(score - singleToTops * 3) / 2}`,
+          note: `Parks on Tops for next visit. ${trebleBust ? 'Keep dart centered in the fat bed to avoid an accidental treble bust.' : 'Accidental treble safely leaves an active double.'}`
+        };
+      }
+    }
+
+    // 61 to 100 with 1 dart: Routine reduction toward 20s or 19s
+    if (score > 60 && score <= 100) {
+      return {
+        route: "Aim S20 / S19",
+        miss: "Fat wedge leaves active 3-dart finish",
+        note: `Throw at a large single bed to bring the score into comfortable 3-dart range (under 80) for your next visit.`
+      };
+    }
+
+    return { route: "Aim S20 / Preferred Scoring Bed", miss: "Avoid straying into low numbers", note: "Standard setup dart to reduce total." };
+  }
+
+  // 2 DARTS ON HIGH SCORES (111 to 130)
+  if (darts === 2 && score > 110 && score <= 130) {
+    return { route: "T20 → Leaves clean finish", miss: "Fat 20 brings score below 110", note: `Throw at T20. Even with a single 20, you leave ${score - 20}, setting up an easy 3-dart out next turn.` };
+  }
+
+  // 3 DARTS ON BOGEYS OR SETUP RANGES
+  if (darts === 3) {
+    const bogeys = [169, 168, 166, 165, 163, 162, 159];
+    if (bogeys.includes(score)) return { route: `Aim T20 (Bogey Breakdown)`, miss: "Single still breaks the bogey total", note: `You cannot finish ${score}. A single 20 instantly removes you from the bogey trap, leaving a valid 3-dart checkout next turn.` };
+    if (score >= 225 && score <= 230) return { route: "T20 → T20 → Steer for 164 / 161", miss: "Avoid leaving 170", note: "Modern analytics dictate steering your final dart to leave a single-treble checkout (164 or 161) rather than landing on 170 which requires back-to-back trebles next visit." };
+  }
+
+  return null;
+}
+
+function computeEngineOut(score, darts) {
+  if (score < 2 || score > 170 || [169, 168, 166, 165, 163, 162, 159].includes(score)) return null;
+
+  if (darts === 1) {
+    if (score === 50) return { route: "D25", note: "Single-dart finish." };
+    if (score <= 40 && score % 2 === 0) return { route: `D${score / 2}`, note: "Direct double attempt." };
+    return null;
+  }
+
+  if (darts >= 2) {
+    if (score <= 40 && score % 2 === 0) return { route: `D${score / 2}`, miss: `Inside miss leaves D${(score/2)/2 || 'odd split'}`, note: "Direct double attempt with darts in reserve." };
+    
+    let bestSD = null; let maxSafe = -99;
+    for (let d of [16, 18, 14, 12, 20, 10, 8]) {
+      let s = score - (d * 2);
+      if (s >= 1 && s <= 20) {
+        let safety = getSafetyScore(s, score % 2 !== 0);
+        if (d === 16) safety += 0.5;
+        if (safety > maxSafe) {
+          maxSafe = safety;
+          bestSD = { route: `S${s} → D${d}`, miss: `Hits safe parity cluster.`, note: `Prioritizes structural forgiveness. S${s} anchors in a safe kinetic corridor (avoiding isolation traps), routing to D${d}.` };
+        }
+      }
+    }
+    if (bestSD && darts === 2) return bestSD;
+    
+    let bestTD = null;
+    for (let t of [20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10]) {
+      let rem = score - (t * 3);
+      if (rem > 0 && rem <= 40 && rem % 2 === 0) { bestTD = { route: `T${t} → D${rem / 2}`, note: "Standard treble to double." }; break; }
+      if (rem === 50) { bestTD = { route: `T${t} → D25`, note: "Treble leaves D25." }; break; }
+    }
+    
+    if (darts === 2) return bestTD || null;
+    if (bestSD && darts === 3) return bestSD;
+    if (bestTD && darts === 3) return bestTD;
+    
+    for (let t1 of [20, 19, 18, 17, 16, 15]) {
+      let rem1 = score - (t1 * 3);
+      if (rem1 < 2) continue;
+      for (let d of [16, 18, 14, 12, 20]) {
+        let s = rem1 - (d * 2);
+        if (s >= 1 && s <= 20) return { route: `T${t1} → S${s} → D${d}`, miss: `Fat ${t1} leaves ${score - t1}`, note: `Calculated path forcing route to preferred D${d}.` };
+      }
+      for (let t2 of [20, 19, 18, 17, 16, 15]) {
+        let rem2 = rem1 - (t2 * 3);
+        if (rem2 > 0 && rem2 <= 40 && rem2 % 2 === 0) return { route: `T${t1} → T${t2} → D${rem2 / 2}`, note: "Two-treble combination." };
+        if (rem2 === 50) return { route: `T${t1} → T${t2} → D25`, note: "Two trebles to D25." };
+      }
+    }
+  }
+  return null;
+}
+
+function renderDisplay() {
+  const container = document.getElementById('resultsContainer');
+  const actionBar = document.getElementById('actionBar');
+  container.innerHTML = "";
+
+  if (!currentScore) { actionBar.style.display = 'none'; return; }
+  actionBar.style.display = 'flex';
+
+  const score = parseInt(currentScore, 10);
+  if (score < 2 || score > 501) { 
+    container.innerHTML = `<div class="out-card avoid"><span class="badge avoid">Out of Range</span><div class="route-line">Invalid Score</div></div>`; 
+    return; 
+  }
+
+  const db = getDb();
+  const key = `${score}_${dartsInHand}`;
+  const customEntries = db[key];
+
+  if (customEntries && customEntries.length > 0) {
+    customEntries.forEach((item, idx) => renderCard(item.type, item.route, item.miss, item.note, idx, container, true));
+    return;
+  }
+
+  const calc = computeEngineOut(score, dartsInHand);
+  if (calc) { renderCard('best', calc.route, calc.miss, calc.note, 'calc', container, false); return; }
+
+  const setup = computeSetupShot(score, dartsInHand);
+  if (setup) { renderCard('setup', setup.route, setup.miss, setup.note, 'setup', container, false); } 
+  else { container.innerHTML = `<div class="out-card avoid"><span class="badge avoid">No Finish</span><div class="route-line">Score Setup</div></div>`; }
+}
+
+function renderCard(type, route, miss, note, idSuffix, container, isEditable) {
+  const card = document.createElement('div'); card.className = `out-card ${type}`;
+  const badgeText = type === 'best' ? 'Best Option' : type === 'alt' ? '2nd Choice' : type === 'avoid' ? 'Avoid This!' : 'Setup Strategy';
+  
+  let missHtml = '';
+  if (miss && miss.trim()) {
+    const branches = miss.split(/\s*\|\s*/).filter(Boolean);
+    missHtml = `
+      <div class="miss-branches">
+        ${branches.map(branch => `
+          <div class="miss-branch">
+            <span class="miss-arrow">↳</span>
+            <span>${branch}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  card.innerHTML = `
+    <div class="card-top"><span class="badge ${type}">${badgeText}</span>${isEditable ? `<button class="btn-edit-card" onclick="openEditModal(${idSuffix})">Edit</button>` : ''}</div>
+    <div class="route-line">${route}</div>
+    ${missHtml}
+    ${note ? `<div class="details-toggle" onclick="toggleNote('${idSuffix}')">Tactical Details ▾</div><div class="notes-box" id="note_${idSuffix}">${note}</div>` : ''}
+  `;
+  container.appendChild(card);
+}
+
+function toggleNote(id) { const el = document.getElementById(`note_${id}`); if (el) el.classList.toggle('open'); }
+
+/* =========================================================================
+   5. MODAL FORM ACTIONS (ADD / EDIT / DELETE)
+   ========================================================================= */
+function openAddModal() {
+  document.getElementById('formTitle').innerText = `Add Route: ${currentScore} (${dartsInHand} Darts)`;
+  document.getElementById('editIndex').value = "-1";
+  document.getElementById('formTier').value = "best"; 
+  document.getElementById('formRoute').value = ""; 
+  document.getElementById('formMiss').value = ""; 
+  document.getElementById('formNote').value = "";
+  document.getElementById('btnDeleteRoute').style.display = 'none'; 
+  document.getElementById('formModal').style.display = 'flex';
+}
+function openEditModal(idx) {
+  const db = getDb(); const entry = db[`${currentScore}_${dartsInHand}`][idx];
+  document.getElementById('formTitle').innerText = `Edit: ${currentScore} (${dartsInHand} Darts)`;
+  document.getElementById('editIndex').value = idx;
+  document.getElementById('formTier').value = entry.type || "best"; 
+  document.getElementById('formRoute').value = entry.route || ""; 
+  document.getElementById('formMiss').value = entry.miss || ""; 
+  document.getElementById('formNote').value = entry.note || "";
+  document.getElementById('btnDeleteRoute').style.display = 'block'; 
+  document.getElementById('formModal').style.display = 'flex';
+}
+function closeFormModal() { document.getElementById('formModal').style.display = 'none'; }
+function saveFormRoute() {
+  const route = document.getElementById('formRoute').value.trim(); if (!route) return;
+  const type = document.getElementById('formTier').value; const miss = document.getElementById('formMiss').value.trim(); const note = document.getElementById('formNote').value.trim();
+  const idx = parseInt(document.getElementById('editIndex').value, 10); const key = `${parseInt(currentScore, 10)}_${dartsInHand}`;
+  const db = getDb(); if (!db[key]) db[key] = [];
+  const entryObj = { type, route, miss, note };
+  if (idx >= 0) db[key][idx] = entryObj; else db[key].push(entryObj);
+  saveDb(db); closeFormModal(); renderDisplay();
+}
+function deleteCurrentRoute() {
+  const idx = parseInt(document.getElementById('editIndex').value, 10); const key = `${parseInt(currentScore, 10)}_${dartsInHand}`; const db = getDb();
+  if (idx >= 0 && db[key]) { db[key].splice(idx, 1); if (db[key].length === 0) delete db[key]; saveDb(db); }
+  closeFormModal(); renderDisplay();
+}
+function resetToDefaults() { if (confirm("Reset to factory defaults?")) { localStorage.removeItem("dart_tactical_hybrid_v3"); renderDisplay(); } }
+
+/* =========================================================================
+   6. MASTER DICTIONARY DATASTORE (170 TO 2) - AUDITED MODERN BASELINE
+   ========================================================================= */
+const defaultDb = {
+  // 170 TO 140 BLOCK
+  "170_3": [{ type: "best", route: "T20 → T20 → D25", miss: "If S20 : T20 → T20 (Leaves 30)", note: "Maximum checkout. S20 miss stays on 20s to leave 30 for the next visit." }],
+  "167_3": [{ type: "best", route: "T20 → T19 → D25", miss: "If S20 : T20 → T19 (Leaves 33)", note: "Only mathematical 3-dart path. S20 miss routes through 20s and 19s to set up an out." }],
+  "164_3": [
+    { type: "best", route: "T20 → T18 → D25", miss: "If S20 : T20 → T18 (Leaves 36)", note: "Standard direct route requiring a vertical shift down to 18s." },
+    { type: "best", route: "T19 → T19 → D25", miss: "If S19 : T19 → T19 (Leaves 38)", note: "Co-equal baseline option keeping mechanics locked in the 19 bed for both trebles." }
+  ],
+  "161_3": [
+    { type: "best", route: "T20 → T17 → D25", miss: "If S20 : T20 → T17 (Leaves 39)", note: "Lowest two-treble combination requiring Bullseye." },
+    { type: "alt", route: "T19 → T18 → D25", miss: "If S19 : T19 → T18 (Leaves 39)", note: "Alternative routing across lower beds to Bullseye if the 20 bed is blocked." }
+  ],
+  "160_3": [{ type: "best", route: "T20 → T20 → D20", miss: "If S20 : T20 → T20 (Leaves 40)", note: "Highest non-bull checkout. S20 miss staying in 20s parks on Tops next visit." }],
+  "158_3": [{ type: "best", route: "T20 → T20 → D19", miss: "If S20 : T20 → T20 (Leaves 38)", note: "Standard direct route leaving D19." }],
+  "157_3": [{ type: "best", route: "T20 → T19 → D20", miss: "If S20 : T20 → T19 (Leaves 40)", note: "Standard route to Tops. S20 miss staying on trebles sets up 40 next turn." }],
+  "156_3": [{ type: "best", route: "T20 → T20 → D18", miss: "If S20 : T20 → T20 (Leaves 36)", note: "Leaves D18. Staying on 20s on a miss sets up D18 next visit." }],
+  "155_3": [{ type: "best", route: "T20 → T19 → D19", miss: "If S20 : T20 → T19 (Leaves 38)", note: "Standard combination route leaving D19." }],
+  "154_3": [
+    { type: "best", route: "T20 → T18 → D20", miss: "If S20 : T20 → T18 (Leaves 40)", note: "Standard direct route leaving Tops." },
+    { type: "best", route: "T19 → T19 → D20", miss: "If S19 : T19 → T19 (Leaves 40)", note: "Co-equal baseline option keeping mechanics locked in the 19 bed for both trebles to Tops." }
+  ],
+  "153_3": [{ type: "best", route: "T20 → T19 → D18", miss: "If S20 : T20 → T19 (Leaves 36)", note: "Standard route leaving D18." }],
+  "152_3": [{ type: "best", route: "T20 → T20 → D16", miss: "If S20 : T20 → T20 (Leaves 32)", note: "Premier power-of-two route. Leaves D16." }],
+  "151_3": [
+    { type: "best", route: "T20 → T17 → D20", miss: "If S20 : T20 → T17 (Leaves 40)", note: "Standard route leaving Tops." },
+    { type: "alt", route: "T19 → T18 → D20", miss: "If S19 : T19 → T18 (Leaves 40)", note: "Alternative routing across lower beds to Tops if the 20 bed is blocked." }
+  ],
+  "150_3": [
+    { type: "best", route: "T20 → T18 → D18", miss: "If S20 : T20 → T18 (Leaves 36)", note: "Standard high-percentage combination to D18." },
+    { type: "best", route: "T19 → T19 → D18", miss: "If S19 : T19 → T19 (Leaves 36)", note: "Co-equal baseline option keeping mechanics locked in the 19 bed to D18." },
+    { type: "alt", route: "T20 → D25 → D20", miss: "If T20 → 25 : Aim S15 (Leaves 50)", note: "6-dart bull percentage play. Dart 2 at D25 leaves Tops; catching 25 leaves 65, where S15 sets up 50 for next turn." }
+  ],
+  "149_3": [{ type: "best", route: "T20 → T19 → D16", miss: "If S20 : T20 → T19 (Leaves 32)", note: "Leaves D16 via 19s." }],
+  "148_3": [
+    { type: "best", route: "T20 → T20 → D14", miss: "If S20 : T20 → T20 (Leaves 28)", note: "Standard direct route keeping first two darts in 20s." },
+    { type: "best", route: "T20 → T16 → D20", miss: "If S20 : T20 → T16 (Leaves 40)", note: "Co-equal parity route prioritizing Tops over D14." }
+  ],
+  "147_3": [
+    { type: "best", route: "T20 → T17 → D18", miss: "If S20 : T20 → T17 (Leaves 36)", note: "Standard route leaving D18." },
+    { type: "best", route: "T19 → T18 → D18", miss: "If S19 : T19 → T18 (Leaves 36)", note: "Co-equal baseline option preserving horizontal rhythm across lower beds to D18." }
+  ],
+  "146_3": [
+    { type: "best", route: "T20 → T18 → D16", miss: "If S20 : T20 → T18 (Leaves 32)", note: "Standard route to D16." },
+    { type: "best", route: "T19 → T19 → D16", miss: "If S19 : T19 → T19 (Leaves 32)", note: "Co-equal baseline option keeping mechanics locked in the 19 bed to D16." }
+  ],
+  "145_3": [
+    { type: "best", route: "T20 → T19 → D14", miss: "If S20 : T20 → T19 (Leaves 28)", note: "Standard route utilizing high trebles." },
+    { type: "best", route: "T20 → T15 → D20", miss: "If S20 : T20 → T15 (Leaves 40)", note: "Co-equal parity route prioritizing Tops over D14." }
+  ],
+  "144_3": [
+    { type: "best", route: "T20 → T20 → D12", miss: "If S20 : T20 → T20 (Leaves 24)", note: "Standard direct route keeping both darts in 20s to D12." },
+    { type: "best", route: "T18 → T18 → D18", miss: "If S18 : T18 → T18 (Leaves 36)", note: "Co-equal baseline option anchoring visually in the 18 bed to D18." },
+    { type: "alt", route: "T20 → T16 → D18", miss: "If S20 : T20 → T16 (Leaves 36)", note: "Wire-blocking backup if dart 1 obstructs the T20 bed, pivoting to leave D18." }
+  ],
+  "143_3": [
+    { type: "best", route: "T20 → T17 → D16", miss: "If S20 : T20 → T17 (Leaves 32)", note: "Standard route to D16." },
+    { type: "best", route: "T19 → T18 → D16", miss: "If S19 : T19 → T18 (Leaves 32)", note: "Co-equal baseline option routing across lower beds to D16." }
+  ],
+  "142_3": [
+    { type: "best", route: "T20 → T14 → D20", miss: "If S20 : T20 → T14 (Leaves 40)", note: "Standard direct route to Tops." },
+    { type: "alt", route: "T20 → T18 → D14", miss: "If S20 : T20 → T18 (Leaves 28)", note: "Alternative route through 18s to D14." },
+    { type: "alt", route: "T20 → D25 → D16", miss: "If T20 → 25 : Aim S17 (Leaves 40)", note: "6-dart bull percentage play via D25. Dart 2 at D25 leaves D16; catching 25 leaves 57, where S17 sets up Tops for next turn." }
+  ],
+  "141_3": [
+    { type: "best", route: "T20 → T19 → D12", miss: "If S20 : T20 → T19 (Leaves 24)", note: "Standard route leading to D12." },
+    { type: "best", route: "T17 → T18 → D18", miss: "If S17 : T17 → T18 (Leaves 36)", note: "Co-equal baseline option avoiding 20s and finishing on D18." }
+  ],
+  "140_3": [
+    { type: "best", route: "T20 → T20 → D10", miss: "If S20 : T20 → T20 (Leaves 20)", note: "Standard direct route leading to D10." },
+    { type: "alt", route: "T20 → T16 → D16", miss: "If S20 : T20 → T16 (Leaves 32)", note: "Luxury play. Sacrifices a dart if you miss T16, but yields the superior D16 terminal double over D10 when you have score advantage." }
+  ],
+
+  // 139 TO 110 BLOCK
+  "139_3": [
+    { type: "best", route: "T19 → T14 → D20", miss: "If S19 : T20 → S20 (Leaves 40)", note: "DartBase primary route through 19s and 14s to Tops." },
+    { type: "alt", route: "T19 → T18 → D14", miss: "If S19 : T19 → S17 (Leaves 46)", note: "Alternative routing through 18s to D14." },
+    { type: "alt", route: "T20 → T19 → D11", miss: "If S20 : T20 → S19 (Leaves 40)", note: "Wire-blocking backup alternative if the 19 bed is physically crowded." },
+    { type: "alt", route: "T19 → D25 → D16", miss: "If T19 → 25 : Aim S17 (Leaves 40)", note: "6-dart bull percentage play. Dart 2 at D25 leaves D16; catching 25 leaves 57, where S17 sets up Tops for next turn." }
+  ],
+  "138_3": [
+    { type: "best", route: "T20 → T18 → D12", miss: "If S20 : T20 → S18 (Leaves 40)", note: "Standard direct route." },
+    { type: "alt", route: "T19 → T19 → D12", miss: "If S19 : T19 → S19 (Leaves 43)", note: "Bed-stacking alternative keeping mechanics in the 19 bed to D12." }
+  ],
+  "137_3": [
+    { type: "best", route: "T20 → T19 → D10", miss: "If S20 : T20 → S17 (Leaves 40)", note: "Standard direct route leading to D10." },
+    { type: "alt", route: "T19 → T20 → D10", miss: "If S19 : T20 → S18 (Leaves 40)", note: "Alternative entry sequence via 19s." }
+  ],
+  "136_3": [{ type: "best", route: "T20 → T20 → D8", miss: "If S20 : T20 → S16 (Leaves 40)", note: "Standard route leaving D8." }],
+  "135_3": [
+    { type: "best", route: "T20 → T17 → D12", miss: "If S20 : T19 → S18 (Leaves 40)", note: "Standard conservative route requiring two trebles." },
+    { type: "alt", route: "D25 → T19 → D14", miss: "If 25 : T20 → D25", note: "6-dart bull percentage play. Starting on D25 leaves 110 on a single bull hit, keeping the turn alive." },
+    { type: "alt", route: "D25 → T15 → D20", miss: "If 25 : T20 → D25", note: "6-dart bull percentage play leaving Tops with a 110 bull recovery." }
+  ],
+  "134_3": [{ type: "best", route: "T20 → T14 → D16", miss: "If S20 : T20 → S14 (Leaves 40)", note: "Standard route leaving D16." }],
+  "133_3": [{ type: "best", route: "T20 → T19 → D8", miss: "If S20 : T19 → S16 (Leaves 40)", note: "Standard route leaving D8." }],
+  "132_3": [
+    { type: "best", route: "D25 → T14 → D20", miss: "If 25 : T19 → D25", note: "DartBase Option 1. Starting on Bull leaves Tops. Catching 25 leaves 107 for a 2-dart finish." },
+    { type: "best", route: "T20 → T16 → D12", miss: "If S20 : T20 → S20 (Leaves 32)", note: "DartBase Option 2. Pivots away from D6 to leave the preferred D12." },
+    { type: "alt", route: "T20 → T12 → D18", miss: "If S20 : T20 → S20 (Leaves 32)", note: "Alternative pivot avoiding D6 to leave D18." },
+    { type: "alt", route: "T20 → T20 → D6", miss: "If S20 : T20 → S20 (Leaves 32)", note: "Classic route. Standard execution, but lands on D6 which lacks a clean single-split." },
+    { type: "alt", route: "D25 → D25 → D16", miss: "If 25 : T19 → D25", note: "Center-ring stacking alternative for confident bull players." }
+  ],
+  "131_3": [
+    { type: "best", route: "T20 → T13 → D16", miss: "If S20 : T20 → S11 (Leaves 40)", note: "Standard route leaving D16." },
+    { type: "best", route: "T19 → T14 → D16", miss: "If S19 : T20 → S20 (Leaves 32)", note: "Co-equal baseline option via 19s leaving D16." }
+  ],
+  "130_3": [{ type: "best", route: "T20 → T20 → D5", miss: "If S20 : T20 → D25 | If T20 → S20 : D25", note: "Pressure play. S20 leaves 110 (T20 → D25). Hitting T20 then S20 leaves 50 for D25. Do not pivot to 18s or 10s: missing dart 2 into S18 or S10 burns the final dart without an out." }],
+  "129_3": [{ type: "best", route: "T19 → T20 → D6", miss: "If S19 : T20 → D25 | If T19 → S20 : D25", note: "S19 miss on dart 1 leaves exactly 110 (T20 → D25), preserving a 2-dart checkout." }],
+  "128_3": [
+    { type: "best", route: "T18 → T14 → D16", miss: "If S18 : T20 → D25", note: "DartBase Option 1. Starting on T18 preserves 110 (T20 → D25) on a single miss. Never start on 20: S20 leaves 108 with no 2-dart out." },
+    { type: "best", route: "T18 → T18 → D10", miss: "If S18 : T20 → D25", note: "DartBase Option 2. Single-bed lock in 18s to D10. Preserves the 110 recovery on an S18 miss." }
+  ],
+  "127_3": [{ type: "best", route: "T20 → T17 → D8", miss: "If S20 : T19 → D25 | If T20 → S17 : D25", note: "Dual recovery. S20 on dart 1 leaves 107 (T19 → D25). Hitting T20 then S17 on dart 2 leaves 50 for D25." }],
+  "126_3": [{ type: "best", route: "T19 → T19 → D6", miss: "If S19 : T19 → D25 | If T19 → S19 : D25", note: "Dual recovery in 19s. S19 leaves 107 (T19 → D25). T19 then S19 leaves 50 for D25." }],
+  "125_3": [
+    { type: "best", route: "25 → T20 → D20", miss: "If D25 : T17 → D12", note: "DartBase Option 1. Aim for Single Bull. 25 leaves 100 (T20 → Tops). Accidental D25 leaves 75 (T17 → D12)." },
+    { type: "best", route: "T18 → T13 → D16", miss: "If S18 : T19 → D25", note: "DartBase Option 2. Co-equal baseline for non-bull players. S18 miss leaves 107 (T19 → D25)." },
+    { type: "alt", route: "T20 → T19 → D4", miss: "If S20 : T15 → D20", note: "Alternative 20s route to D4. S20 leaves 105." }
+  ],
+  "124_3": [{ type: "best", route: "T20 → T14 → D11", miss: "If S20 : T18 → D25 | If T20 → S14 : D25", note: "Dual recovery. S20 leaves 104 (T18 → D25). Hitting T20 then S14 leaves 50 for D25." }],
+  "123_3": [{ type: "best", route: "T19 → T16 → D9", miss: "If S19 : T18 → D25 | If T19 → S16 : D25", note: "DartBase standard. S19 leaves 104; T19 then S16 leaves 50. Do not start on 20: S20 leaves 103, eliminating all 2-dart checkout potential." }],
+  "122_3": [{ type: "best", route: "T18 → T18 → D7", miss: "If S18 : T18 → D25 | If T18 → S18 : D25", note: "DartBase standard. S18 leaves 104; T18 then S18 leaves 50. Do not start on 20: S20 leaves 102 with no 2-dart finish." }],
+  "121_3": [
+    { type: "best", route: "T20 → T11 → D14", miss: "If S20 : T17 → D25 | If T20 → S11 : D25", note: "DartBase standard. S20 leaves 101. T20 forces T11 pivot because S11 leaves 50. Avoid T15 on dart 2 (S15 leaves 46, killing the turn)." },
+    { type: "alt", route: "T17 → T10 → D20", miss: "If S17 : T18 → D25", note: "Alternative route to Tops. S17 miss leaves 104 (T18 → D25)." },
+    { type: "alt", route: "T19 → T14 → D10", miss: "If S19 : T18 → D22", note: "Alternative route via 19s to D10." }
+  ],
+  "120_3": [{ type: "best", route: "T20 → S20 → D20", miss: "If S20 : T20 → D20", note: "The Shanghai. Staying in the 20s bed preserves the 100 checkout (T20 → Tops) on a single miss." }],
+  "119_3": [{ type: "best", route: "T19 → T10 → D16", miss: "If S19 : T20 → D20", note: "DartBase standard. S19 leaves exactly 100 (T20 → Tops). Do not start on 20: S20 leaves 99, which has no 2-dart out." }],
+  "118_3": [{ type: "best", route: "T20 → S18 → D20", miss: "If S20 : T20 → D19", note: "Standard setup route to Tops. S20 miss leaves 98 (T20 → D19)." }],
+  "117_3": [{ type: "best", route: "T20 → S17 → D20", miss: "If S20 : T19 → D20", note: "Standard route to Tops. Do not start on 19: S19 leaves 98, which forces an odd double (D19) on your recovery instead of Tops." }],
+  "116_3": [
+    { type: "best", route: "T20 → S16 → D20", miss: "If S20 : T20 → D18", note: "Standard setup route to Tops. S20 miss leaves 96 (T20 → D18)." },
+    { type: "best", route: "T19 → S19 → D20", miss: "If S19 : T19 → D20", note: "Co-equal baseline keeping mechanics locked in 19s to Tops. S19 leaves 97." }
+  ],
+  "115_3": [
+    { type: "best", route: "T19 → S18 → D20", miss: "If S19 : T20 → D18", note: "DartBase standard. T19 leaves 58 (S18 → Tops). S19 leaves 96 (T20 → D18). Do not start on 20: S20 leaves 95 (T19 → D19), an inferior recovery." },
+    { type: "alt", route: "T20 → S15 → D20", miss: "If S20 : T19 → D19", note: "Alternative 20s route to Tops." }
+  ],
+  "114_3": [
+    { type: "best", route: "T20 → S14 → D20", miss: "If S20 : T18 → D20", note: "DartBase Option 1. Standard setup route to Tops. S20 miss leaves 94 (T18 → D20)." },
+    { type: "best", route: "T19 → S17 → D20", miss: "If S19 : T19 → D19", note: "DartBase Option 2. Co-equal route via 19s to Tops." }
+  ],
+  "113_3": [
+    { type: "best", route: "T19 → S16 → D20", miss: "If S19 : T18 → D20", note: "Primary route through 19s to Tops. S19 miss leaves 94 (T18 → D20)." },
+    { type: "alt", route: "T20 → S13 → D20", miss: "If S20 : T19 → D18", note: "Alternative routing through 20s to Tops. S20 miss leaves 93 (T19 → D18)." }
+  ],
+  "112_3": [
+    { type: "best", route: "T20 → S20 → D16", miss: "If S20 : T20 → D16", note: "DartBase Option 1. Single-bed alignment route to D16. T20 leaves 52; staying in 20s leaves D16. S20 leaves 92." },
+    { type: "best", route: "T20 → S12 → D20", miss: "If S20 : T20 → D16", note: "DartBase Option 2. Standard route to Tops. T20 leaves 52; S12 leaves Tops. S20 leaves 92 (T20 → D16)." },
+    { type: "best", route: "T18 → S18 → D20", miss: "If S18 : T18 → D20", note: "DartBase Option 3. Lower-board bed lock in 18s to Tops. S18 miss leaves 94." }
+  ],
+  "111_3": [
+    { type: "best", route: "T20 → S11 → D20", miss: "If S20 : T17 → D20", note: "DartBase Option 1. Standard setup route to Tops. S20 miss leaves 91 (T17 → D20)." },
+    { type: "best", route: "T19 → S14 → D20", miss: "If S19 : T20 → D16", note: "DartBase Option 2. Co-equal route via 19s to Tops. S19 miss leaves 92 (T20 → D16)." },
+    { type: "alt", route: "T20 → S19 → D16", miss: "If S20 : T17 → D20", note: "DartBase Option 3. Route through 20s to D16." }
+  ],
+  "110_3": [
+    { type: "best", route: "T20 → S10 → D20", miss: "If S20 : T18 → D18", note: "DartBase Option 1. T20 leaves 50. Pivot to fat 10 to leave Tops. S20 leaves 90 (T18 → D18)." },
+    { type: "best", route: "T20 → S18 → D16", miss: "If S20 : T18 → D18", note: "DartBase Option 2. Co-equal route leaving D16. T20 leaves 50; fat 18 leaves D16. S20 leaves 90." }
+  ],
+  "110_2": [{ type: "best", route: "T20 → D25", miss: "If S20 : T20 (Leaves 30) | S20 (Leaves 70)", note: "Only mathematical 2-dart checkout. S20 miss stays on 20s: T20 parks on D15, S20 leaves 70." }],
+
+  // 109 TO 91 BLOCK
+  "109_3": [
+    { type: "best", route: "T19 → S20 → D16", miss: "If S19 : T18 → D18", note: "Elite parity route. T19 leaves an even 52, setting up S20 to D16. Missing S19 leaves 90 for a 2-dart recovery (T18 → D18)." },
+    { type: "best", route: "T20 → S17 → D16", miss: "If S20 : T19 → D16", note: "Co-equal baseline. S20 leaves 89 (T19 → D16). Hitting T20 leaves 49, routing through S17 to D16." }
+  ],
+  "109_2": [{ type: "setup", route: "T19 → S20", miss: "If S19 : T20 (Leaves 30) | S20 (Leaves 70)", note: "No 2-dart checkout. T19 leaves 52, where S20 sets up D16 for next visit. S19 miss pivots to 20s." }],
+  "108_3": [
+    { type: "best", route: "T20 → S16 → D16", miss: "If S20 : T20 → D14", note: "Standard route. S20 leaves 88, allowing you to stay in 20s to salvage the leg (T20 → D14)." },
+    { type: "best", route: "T19 → S19 → D16", miss: "If S19 : T19 → D16", note: "Single-bed alignment option. Locks throwing mechanics into the 19 bed to D16. S19 leaves 89." },
+    { type: "best", route: "T18 → S18 → D18", miss: "If S18 : T18 → D18", note: "Single-bed alignment option in 18s to D18. S18 leaves 90 (T18 → D18)." }
+  ],
+  "108_2": [{ type: "setup", route: "T20 → S16", miss: "If S20 : T20 (Leaves 28) | S20 (Leaves 68)", note: "No 2-dart checkout. T20 leaves 48, where S16 sets up D16. S20 miss stays in 20s." }],
+  "107_3": [
+    { type: "best", route: "T19 → S18 → D16", miss: "If S19 : T20 → D14", note: "Parity route leaving D16. T19 leaves 50; S18 leaves D16. S19 leaves 88 (T20 → D14)." },
+    { type: "best", route: "T19 → S10 → D20", miss: "If S19 : T20 → D14", note: "Co-equal route leaving Tops. T19 leaves 50; S10 leaves Tops." },
+    { type: "alt", route: "T20 → S15 → D16", miss: "If S20 : T19 → D15", note: "Alternative 20s route. T20 leaves an odd 47, making dart 2 slightly more demanding." }
+  ],
+  "107_2": [{ type: "best", route: "T19 → D25", miss: "If S19 : T20 (Leaves 28) | S20 (Leaves 68)", note: "Only 2-dart checkout. S19 miss pivots to 20s: T20 parks on D14, S20 leaves 68." }],
+  "106_3": [
+    { type: "best", route: "T20 → S14 → D16", miss: "If S20 : T18 → D16", note: "Standard baseline through 20s. T20 leaves 46 (S14 → D16). S20 leaves 86 (T18 → D16)." },
+    { type: "best", route: "T18 → S20 → D16", miss: "If S18 : T20 → D14", note: "Co-equal parity route. T18 leaves an even 52, setting up S20 to D16. S18 leaves 88." }
+  ],
+  "106_2": [{ type: "setup", route: "T20 → S14", miss: "If S20 : T18 (Leaves 32) | S18 (Leaves 68)", note: "No 2-dart checkout. T20 leaves 46, where S14 parks on D16. S20 miss targets 18s." }],
+  "105_3": [
+    { type: "best", route: "T19 → S16 → D16", miss: "If S19 : T18 → D16", note: "Optimal parity route. T19 leaves an even 48, setting up S16 to D16. S19 leaves 86 (T18 → D16)." },
+    { type: "best", route: "T20 → S13 → D16", miss: "If S20 : T15 → D20", note: "Co-equal 20s route to D16. T20 leaves 45 (S13 → D16). S20 leaves 85 (T15 → Tops)." },
+    { type: "alt", route: "T20 → S5 → D20", miss: "If S20 : T15 → D20", note: "Alternative 20s route leaving Tops via S5." }
+  ],
+  "105_2": [{ type: "setup", route: "T19 → S16", miss: "If S19 : T18 (Leaves 32) | S18 (Leaves 68)", note: "No 2-dart checkout. T19 leaves 48, where S16 sets up D16. S19 miss targets 18s." }],
+  "104_3": [
+    { type: "best", route: "T18 → S18 → D16", miss: "If S18 : T18 → D16", note: "Elite single-bed mechanic. T18 leaves 50; staying in 18s leaves D16. S18 leaves 86 (T18 → D16)." },
+    { type: "best", route: "T20 → S12 → D16", miss: "If S20 : T20 → D12", note: "Co-equal 20s route to D16. T20 leaves 44 (S12 → D16). S20 leaves 84 (T20 → D12)." }
+  ],
+  "104_2": [{ type: "best", route: "T18 → D25", miss: "If S18 : T18 (Leaves 32) | S18 (Leaves 68)", note: "Direct 2-dart pressure route. S18 miss stays in 18s: T18 parks on D16, S18 leaves 68." }],
+  "103_3": [
+    { type: "best", route: "T19 → S14 → D16", miss: "If S19 : T20 → D12", note: "Parity route. T19 leaves an even 46, setting up S14 to D16. S19 leaves 84 (T20 → D12)." },
+    { type: "best", route: "T20 → S11 → D16", miss: "If S20 : T17 → D16", note: "Co-equal 20s route to D16. T20 leaves 43 (S11 → D16). S20 leaves 83 (T17 → D16)." }
+  ],
+  "103_2": [{ type: "setup", route: "T19 → S14", miss: "If S19 : T20 (Leaves 24) | S20 (Leaves 64)", note: "No 2-dart checkout. T19 leaves 46, where S14 sets up D16. S19 miss targets 20s." }],
+  "102_3": [
+    { type: "best", route: "T20 → S10 → D16", miss: "If S20 : T14 → D20 | If S20 : D25", note: "Primary route. T20 leaves 42 (S10 → D16). S20 leaves 82 (T14 → Tops or D25). Avoid starting on 19 (S19 leaves an awkward 83)." },
+    { type: "alt", route: "T20 → S14 → D14", miss: "If S20 : T18 → D14", note: "Alternative 20s route finishing on D14." }
+  ],
+  "102_2": [{ type: "setup", route: "T20 → S10", miss: "If S20 : T14 (Leaves 40) | S14 (Leaves 68)", note: "No 2-dart checkout. T20 leaves 42, where S10 sets up D16. S20 miss targets 14s." }],
+  "101_3": [
+    { type: "best", route: "T17 → S18 → D16", miss: "If S17 : T20 → D12", note: "The Leave-50 route. T17 leaves 50; S18 leaves D16. S17 leaves 84 (T20 → D12)." },
+    { type: "best", route: "T19 → S12 → D16", miss: "If S19 : T14 → D20", note: "Co-equal parity route. T19 leaves an even 44, setting up S12 to D16. S19 leaves 82 (T14 → Tops)." },
+    { type: "alt", route: "T20 → S17 → D12", miss: "If S20 : T15 → D18", note: "Standard 20s route to D12. S20 leaves 81." }
+  ],
+  "101_2": [{ type: "best", route: "T17 → D25", miss: "If S17 : T20 (Leaves 24) | S20 (Leaves 64)", note: "Direct 2-dart pressure route. S17 miss targets 20s: T20 parks on D12, S20 leaves 64." }],
+  "100_3": [
+    { type: "best", route: "T20 → D20", miss: "If S20 : T20 → D10 | If S20 : S20 → D20", note: "Direct 2-dart finish. S20 leaves 80, preserving the 20s bed for T20 → D10 or S20 → Tops." },
+    { type: "alt", route: "T19 → S11 → D16", miss: "If S19 : T19 → D12", note: "D16-purist route or physical backup if the T20 wire is blocked. S19 leaves 81." }
+  ],
+  "100_2": [{ type: "best", route: "T20 → D20", miss: "If S20 : T20 (Leaves 20) | S20 (Leaves 60)", note: "Direct out shot. S20 miss stays in 20s: T20 parks on D10, S20 leaves 60." }],
+  "99_3": [{ type: "best", route: "T19 → S10 → D16", miss: "If S19 : T20 → D10", note: "Standard parity route. T19 leaves 42; S19 leaves 80 (T20 → D10). Avoid starting on 20 (S20 leaves 79, which has no two-dart out)." }],
+  "99_2": [{ type: "setup", route: "T19 → S10", miss: "If S19 : T20 (Leaves 20) | S20 (Leaves 60)", note: "No 2-dart checkout. T19 leaves 42, where S10 sets up D16. S19 miss targets 20s." }],
+  "98_3": [
+    { type: "best", route: "T20 → D19", miss: "If S20 : T18 → D12", note: "Direct 2-dart route leaving D19. S20 miss leaves 78 (T18 → D12)." },
+    { type: "alt", route: "T18 → S12 → D16", miss: "If S18 : T20 → D10", note: "Alternative route for players who refuse odd doubles. S18 leaves 80 (T20 → D10)." }
+  ],
+  "98_2": [{ type: "best", route: "T20 → D19", miss: "If S20 : T18 (Leaves 24) | S18 (Leaves 60)", note: "Direct route to D19. S20 miss pivots to 18s: T18 parks on D12, S18 leaves 60." }],
+  "97_3": [{ type: "best", route: "T19 → D20", miss: "If S19 : T18 → D12", note: "Direct route to Tops. T19 leaves 40 (two darts at Tops). S19 leaves 78 (T18 → D12)." }],
+  "97_2": [{ type: "best", route: "T19 → D20", miss: "If S19 : T18 (Leaves 24) | S18 (Leaves 60)", note: "Direct route to Tops. S19 miss pivots to 18s: T18 parks on D12, S18 leaves 60." }],
+  "96_3": [{ type: "best", route: "T20 → D18", miss: "If S20 : T20 → D8", note: "Direct route to D18. T20 leaves 36 (two darts at D18). S20 leaves 76 (T20 → D8)." }],
+  "96_2": [{ type: "best", route: "T20 → D18", miss: "If S20 : T20 (Leaves 16) | S20 (Leaves 56)", note: "Direct route to D18. S20 miss stays in 20s: T20 parks on D8, S20 leaves 56." }],
+  "95_3": [
+    { type: "best", route: "T19 → D19", miss: "If S19 : T20 → D8", note: "Direct route. T19 leaves 38 (two darts at D19). S19 leaves 76 (T20 → D8)." },
+    { type: "alt", route: "T15 → D25", miss: "If S15 : T20 → D10", note: "Alternative route avoiding odd doubles. T15 leaves 50; S15 leaves 80 (T20 → D10)." }
+  ],
+  "95_2": [
+    { type: "best", route: "T19 → D19", miss: "If S19 : T20 (Leaves 16) | S20 (Leaves 56)", note: "Direct route to D19. S19 miss pivots to 20s: T20 parks on D8, S20 leaves 56." },
+    { type: "alt", route: "T15 → D25", miss: "If S15 : T20 (Leaves 20) | S20 (Leaves 60)", note: "Alternative route to Bull. S15 miss pivots to 20s: T20 parks on D10, S20 leaves 60." }
+  ],
+  "94_3": [{ type: "best", route: "T18 → D20", miss: "If S18 : T20 → D8", note: "Direct route to Tops. T18 leaves 40 (two darts at Tops). S18 leaves 76 (T20 → D8)." }],
+  "94_2": [{ type: "best", route: "T18 → D20", miss: "If S18 : T20 (Leaves 16) | S20 (Leaves 56)", note: "Direct route to Tops. S18 miss moves to 20s: T20 parks on D8, S20 leaves 56." }],
+  "93_3": [
+    { type: "best", route: "T19 → D18", miss: "If S19 : T14 → D16", note: "Direct route to D18. T19 leaves 36 (two darts at D18). S19 leaves 74 (T14 → D16)." },
+    { type: "alt", route: "T17 → S10 → D16", miss: "If S17 : T20 → D8", note: "Setup alternative prioritizing D16. T17 leaves an even 42. S17 leaves 76 (T20 → D8)." }
+  ],
+  "93_2": [{ type: "best", route: "T19 → D18", miss: "If S19 : T14 (Leaves 32) | S14 (Leaves 60)", note: "Direct route to D18. S19 miss targets 14s: T14 parks on D16, S14 leaves 60." }],
+  "92_3": [{ type: "best", route: "T20 → D16", miss: "If S20 : T16 → D12 | If S20 : T12 → D18", note: "Direct route to D16. T20 leaves 32 (two darts at D16). S20 leaves 72, with recovery branching to D12 or D18." }],
+  "92_2": [{ type: "best", route: "T20 → D16", miss: "If S20 : T20 (Leaves 12) | S20 (Leaves 52)", note: "Direct route to D16. S20 miss stays in 20s: T20 parks on D6, S20 leaves 52." }],
+  "91_3": [
+    { type: "best", route: "T17 → D20", miss: "If S17 : T14 → D16", note: "Direct route to Tops. T17 leaves 40 (two darts at Tops). S17 leaves 74 (T14 → D16)." },
+    { type: "alt", route: "T19 → D17", miss: "If S19 : T16 → D12", note: "Alternative upper-board route leaving D17. S19 leaves 72 (T16 → D12)." }
+  ],
+  "91_2": [
+    { type: "best", route: "T17 → D20", miss: "If S17 : T14 (Leaves 32) | S14 (Leaves 60)", note: "Direct route to Tops. S17 miss targets 14s: T14 parks on D16, S14 leaves 60." },
+    { type: "alt", route: "T19 → D17", miss: "If S19 : T16 (Leaves 24) | S16 (Leaves 56)", note: "Direct route to D17. S19 miss targets 16s: T16 parks on D12, S16 leaves 56." }
+  ],
+
+  // 90 TO 71 BLOCK
+  "90_3": [
+    { type: "best", route: "T18 → D18", miss: "If S18 : T16 → D12 | If S18 : T12 → D18", note: "Primary parity route. T18 leaves 36 (two darts at D18). S18 leaves 72 (T16 → D12 or T12 → D18)." },
+    { type: "best", route: "T20 → D15", miss: "If S20 : T10 → D20 | If S20 : T18 → D8", note: "Co-equal 20s route. T20 leaves 30. S20 leaves 70 (T10 → Tops or T18 → D8)." }
+  ],
+  "90_2": [
+    { type: "best", route: "T18 → D18", miss: "If S18 : T16 (Leaves 24) | S16 (Leaves 56)", note: "Primary parity route to D18. S18 leaves 72, targeting 16s to set up D12 next visit." },
+    { type: "best", route: "T20 → D15", miss: "If S20 : T10 (Leaves 40) | S10 (Leaves 60)", note: "Co-equal direct route. S20 leaves 70, targeting 10s to set up Tops next visit." },
+    { type: "alt", route: "D25 → D20", miss: "If 25 : S15 (Leaves 50)", note: "Modern PDC pressure route. Bull leaves Tops; 25 leaves 65, where S15 sets up 50 for next turn." }
+  ],
+  "89_3": [{ type: "best", route: "T19 → D16", miss: "If S19 : T18 → D8 | If S19 : T10 → D20", note: "Optimal parity route. T19 leaves 32 (two darts at D16). S19 leaves 70 (T18 → D8 or T10 → Tops)." }],
+  "89_2": [{ type: "best", route: "T19 → D16", miss: "If S19 : T18 (Leaves 16) | S18 (Leaves 52)", note: "Only direct route to premier parity double. S19 leaves 70, targeting 18s to set up D8 next visit." }],
+  "88_3": [
+    { type: "best", route: "T16 → D20", miss: "If S16 : T16 → D12", note: "Optimal parity route to Tops. T16 leaves 40 (two darts at Tops). S16 leaves 72 (T16 → D12)." },
+    { type: "best", route: "T20 → D14", miss: "If S20 : T16 → D10", note: "Co-equal 20s route. T20 leaves 28 (two darts at D14). S20 leaves 68 (T16 → D10)." }
+  ],
+  "88_2": [
+    { type: "best", route: "T16 → D20", miss: "If S16 : T16 (Leaves 24) | S16 (Leaves 56)", note: "Parity play to Tops. S16 leaves 72, targeting 16s to set up D12 next visit." },
+    { type: "best", route: "T20 → D14", miss: "If S20 : T16 (Leaves 20) | S16 (Leaves 52)", note: "Co-equal direct route. S20 leaves 68, targeting 16s to set up D10 next visit." }
+  ],
+  "87_3": [
+    { type: "best", route: "T17 → D18", miss: "If S17 : T18 → D8 | If S17 : T10 → D20", note: "Optimal parity route to D18. T17 leaves 36. S17 leaves 70 (T18 → D8 or T10 → Tops)." },
+    { type: "alt", route: "T19 → D15", miss: "If S19 : T16 → D10", note: "Alternative upper-bed route leaving D15. S19 leaves 68 (T16 → D10)." }
+  ],
+  "87_2": [
+    { type: "best", route: "T17 → D18", miss: "If S17 : T18 (Leaves 16) | S18 (Leaves 52)", note: "Direct route to D18. S17 leaves 70, targeting 18s to set up D8 next visit." },
+    { type: "alt", route: "T19 → D15", miss: "If S19 : T16 (Leaves 20) | S16 (Leaves 52)", note: "Direct route to D15. S19 leaves 68, targeting 16s to set up D10 next visit." }
+  ],
+  "86_3": [{ type: "best", route: "T18 → D16", miss: "If S18 : T16 → D10", note: "Optimal parity route. T18 leaves 32 (two darts at D16). S18 leaves 68 (T16 → D10)." }],
+  "86_2": [
+    { type: "best", route: "T18 → D16", miss: "If S18 : T16 (Leaves 20) | S16 (Leaves 52)", note: "Direct route to D16. S18 leaves 68, targeting 16s to set up D10 next visit." },
+    { type: "alt", route: "D25 → D18", miss: "If 25 : S11 (Leaves 50)", note: "Modern PDC pressure alternative via Bull. Bull leaves D18; 25 leaves 61, where S11 sets up 50." }
+  ],
+  "85_3": [
+    { type: "best", route: "T15 → D20", miss: "If S15 : T18 → D8 | If S15 : T10 → D20", note: "Optimal parity route to Tops. T15 leaves 40 (two darts at Tops). S15 leaves 70 (T18 → D8 or T10 → Tops)." },
+    { type: "best", route: "T19 → D14", miss: "If S19 : T14 → D12", note: "Co-equal baseline via 19s. T19 leaves 28. S19 leaves 66 (T14 → D12)." }
+  ],
+  "85_2": [
+    { type: "best", route: "T15 → D20", miss: "If S15 : T18 (Leaves 16) | S18 (Leaves 52)", note: "Direct route to Tops. S15 leaves 70, targeting 18s to set up D8 next visit." },
+    { type: "best", route: "T19 → D14", miss: "If S19 : T14 (Leaves 24) | S14 (Leaves 52)", note: "Co-equal direct route. S19 leaves 66, targeting 14s to set up D12 next visit." }
+  ],
+  "84_3": [
+    { type: "best", route: "T20 → D12", miss: "If S20 : T16 → D8 | If S20 : T14 → D11", note: "Standard direct route. T20 leaves 24 (two darts at D12). S20 leaves 64 (T16 → D8)." },
+    { type: "best", route: "T16 → D18", miss: "If S16 : T16 → D10", note: "Co-equal parity route to D18. T16 leaves 36. S16 leaves 68 (T16 → D10)." }
+  ],
+  "84_2": [
+    { type: "best", route: "T20 → D12", miss: "If S20 : T16 (Leaves 16) | S16 (Leaves 48)", note: "Direct route to D12. S20 leaves 64, targeting 16s to set up D8 next visit." },
+    { type: "best", route: "T16 → D18", miss: "If S16 : T16 (Leaves 20) | S16 (Leaves 52)", note: "Co-equal route to D18. S16 leaves 68, targeting 16s to set up D10 next visit." }
+  ],
+  "83_3": [{ type: "best", route: "T17 → D16", miss: "If S17 : T14 → D12", note: "Optimal parity route. T17 leaves 32 (two darts at D16). S17 leaves 66 (T14 → D12)." }],
+  "83_2": [{ type: "best", route: "T17 → D16", miss: "If S17 : T14 (Leaves 24) | S14 (Leaves 52)", note: "Direct route to D16. S17 leaves 66, targeting 14s to set up D12 next visit." }],
+  "82_3": [
+    { type: "best", route: "T14 → D20", miss: "If S14 : T16 → D10", note: "Standard parity route to Tops. T14 leaves 40 (two darts at Tops). S14 leaves 68 (T16 → D10)." },
+    { type: "alt", route: "D25 → D16", miss: "If 25 : S17 → D20", note: "Modern bull route. Bull leaves D16; 25 leaves 57 (S17 → Tops). High EV with 3 darts for confident bull players." }
+  ],
+  "82_2": [
+    { type: "best", route: "D25 → D16", miss: "If 25 : S17 (Leaves 40)", note: "Modern PDC standard on 82 with 2 darts. Bull leaves D16; 25 leaves 57, where S17 sets up Tops next visit." },
+    { type: "best", route: "T14 → D20", miss: "If S14 : T16 (Leaves 20) | S16 (Leaves 52)", note: "Co-equal traditional route to Tops. S14 leaves 68, targeting 16s to set up D10 next visit." }
+  ],
+  "81_3": [
+    { type: "best", route: "T15 → D18", miss: "If S15 : T14 → D12", note: "Optimal parity route to D18. T15 leaves 36 (two darts at D18). S15 leaves 66 (T14 → D12)." },
+    { type: "best", route: "T19 → D12", miss: "If S19 : T10 → D16", note: "Co-equal baseline via 19s. T19 leaves 24. S19 leaves 62 (T10 → D16)." }
+  ],
+  "81_2": [
+    { type: "best", route: "T15 → D18", miss: "If S15 : T14 (Leaves 24) | S14 (Leaves 52)", note: "Direct route to D18. S15 leaves 66, targeting 14s to set up D12 next visit." },
+    { type: "best", route: "T19 → D12", miss: "If S19 : T10 (Leaves 32) | S10 (Leaves 52)", note: "Co-equal route to D12. S19 leaves 62, targeting 10s to set up D16 next visit." }
+  ],
+  "80_3": [
+    { type: "best", route: "T20 → D10", miss: "If S20 : S20 → D20", note: "Direct 20s route. T20 leaves 20. S20 leaves 60, where S20 sets up Tops." },
+    { type: "best", route: "T16 → D16", miss: "If S16 : T16 → D8", note: "Co-equal parity route. T16 leaves 32 (two darts at D16). S16 leaves 64 (T16 → D8)." }
+  ],
+  "80_2": [
+    { type: "best", route: "T20 → D10", miss: "If S20 : S20 (Leaves 40)", note: "Standard direct route. S20 leaves 60, where dart 2 targets S20 to set up Tops next visit." },
+    { type: "best", route: "T16 → D16", miss: "If S16 : T16 (Leaves 16) | S16 (Leaves 48)", note: "Co-equal parity route to D16. S16 leaves 64, targeting 16s to set up D8 next visit." }
+  ],
+  "79_3": [
+    { type: "best", route: "T13 → D20", miss: "If S13 : T14 → D12", note: "Optimal parity route to Tops. T13 leaves 40 (two darts at Tops). S13 leaves 66 (T14 → D12)." },
+    { type: "best", route: "T19 → D11", miss: "If S19 : S20 → D20", note: "Co-equal upper-bed route. T19 leaves 22. S19 leaves 60, where S20 sets up Tops." }
+  ],
+  "79_2": [
+    { type: "best", route: "T13 → D20", miss: "If S13 : T14 (Leaves 24) | S14 (Leaves 52)", note: "Direct route to Tops. S13 leaves 66, targeting 14s to set up D12 next visit." },
+    { type: "best", route: "T19 → D11", miss: "If S19 : S20 (Leaves 40)", note: "Co-equal direct route. S19 leaves 60, where dart 2 targets S20 to set up Tops next visit." }
+  ],
+  "78_3": [
+    { type: "best", route: "T18 → D12", miss: "If S18 : S20 → D20", note: "Optimal parity route to D12. T18 leaves 24. S18 leaves 60, where S20 sets up Tops." },
+    { type: "best", route: "T14 → D18", miss: "If S14 : T16 → D8", note: "Co-equal parity route to D18. T14 leaves 36. S14 leaves 64 (T16 → D8)." }
+  ],
+  "78_2": [
+    { type: "best", route: "T18 → D12", miss: "If S18 : S20 (Leaves 40)", note: "Direct route to D12. S18 leaves 60, where dart 2 targets S20 to set up Tops next visit." },
+    { type: "best", route: "T14 → D18", miss: "If S14 : T16 (Leaves 16) | S16 (Leaves 48)", note: "Co-equal route to D18. S14 leaves 64, targeting 16s to set up D8 next visit." }
+  ],
+  "77_3": [
+    { type: "best", route: "T15 → D16", miss: "If S15 : T10 → D16", note: "Optimal parity route to D16. T15 leaves 32. S15 leaves 62 (T10 → D16)." },
+    { type: "best", route: "T19 → D10", miss: "If S19 : S18 → D20", note: "Co-equal route via 19s. T19 leaves 20. S19 leaves 58 (S18 → Tops)." }
+  ],
+  "77_2": [
+    { type: "best", route: "T15 → D16", miss: "If S15 : T10 (Leaves 32) | S10 (Leaves 52)", note: "Direct route to D16. S15 leaves 62, targeting 10s to set up D16 next visit." },
+    { type: "best", route: "T19 → D10", miss: "If S19 : S18 (Leaves 40)", note: "Co-equal route. S19 leaves 58, where dart 2 targets S18 to set up Tops next visit." }
+  ],
+  "76_3": [{ type: "best", route: "T20 → D8", miss: "If S20 : S16 → D20", note: "Standard direct route. T20 leaves 16 (two darts at D8). S20 leaves 56 (S16 → Tops)." }],
+  "76_2": [{ type: "best", route: "T20 → D8", miss: "If S20 : S16 (Leaves 40)", note: "Direct route to D8. S20 leaves 56, where dart 2 targets S16 to set up Tops next visit." }],
+  "75_3": [
+    { type: "best", route: "T17 → D12", miss: "If S17 : S18 → D20", note: "Optimal parity route to D12. T17 leaves 24. S17 leaves 58 (S18 → Tops)." },
+    { type: "alt", route: "T15 → D15", miss: "If S15 : S20 → D20", note: "Single-bed alignment option staying in 15s. S15 leaves 60 (S20 → Tops)." }
+  ],
+  "75_2": [
+    { type: "best", route: "T17 → D12", miss: "If S17 : S18 (Leaves 40)", note: "Direct route to D12. S17 leaves 58, where dart 2 targets S18 to set up Tops next visit." },
+    { type: "alt", route: "D25 → D25", miss: "If 25 : S15 (Leaves 35)", note: "Modern PDC exhibition/pressure route. Bull leaves Bull; 25 leaves 50 for the center ring." }
+  ],
+  "74_3": [
+    { type: "best", route: "T14 → D16", miss: "If S14 : S20 → D20", note: "Optimal parity route. T14 leaves 32 (two darts at D16). S14 leaves 60 (S20 → Tops)." },
+    { type: "alt", route: "T18 → D10", miss: "If S18 : S16 → D20", note: "Alternative upper/lower route. T18 leaves 20. S18 leaves 56 (S16 → Tops)." }
+  ],
+  "74_2": [
+    { type: "best", route: "T14 → D16", miss: "If S14 : S20 (Leaves 40)", note: "Optimal parity route to D16. S14 leaves 60, where dart 2 targets S20 to set up Tops next visit." },
+    { type: "alt", route: "T18 → D10", miss: "If S18 : S16 (Leaves 40)", note: "Alternative route. S18 leaves 56, where dart 2 targets S16 to set up Tops next visit." }
+  ],
+  "73_3": [
+    { type: "best", route: "T19 → D8", miss: "If S19 : S14 → D20", note: "Standard route. T19 leaves 16. S19 leaves 54 (S14 → Tops)." },
+    { type: "best", route: "T15 → D14", miss: "If S15 : S18 → D20", note: "Co-equal baseline via 15s. T15 leaves 28. S15 leaves 58 (S18 → Tops)." }
+  ],
+  "73_2": [
+    { type: "best", route: "T19 → D8", miss: "If S19 : S14 (Leaves 40)", note: "Direct route to D8. S19 leaves 54, where dart 2 targets S14 to set up Tops next visit." },
+    { type: "best", route: "T15 → D14", miss: "If S15 : S18 (Leaves 40)", note: "Co-equal route to D14. S15 leaves 58, where dart 2 targets S18 to set up Tops next visit." }
+  ],
+  "72_3": [
+    { type: "best", route: "T16 → D12", miss: "If S16 : S16 → D20", note: "Optimal parity route. T16 leaves 24. S16 leaves 56 (S16 → Tops)." },
+    { type: "best", route: "T12 → D18", miss: "If S12 : S20 → D20", note: "Co-equal parity route to D18. T12 leaves 36. S12 leaves 60 (S20 → Tops)." },
+    { type: "alt", route: "T20 → D6", miss: "If S20 : S20 → D16", note: "Direct 20s route leaving D6. S20 leaves 52 (S20 → D16)." }
+  ],
+  "72_2": [
+    { type: "best", route: "T16 → D12", miss: "If S16 : S16 (Leaves 40)", note: "Optimal parity route. S16 leaves 56, where dart 2 targets S16 to set up Tops next visit." },
+    { type: "best", route: "T12 → D18", miss: "If S12 : S20 (Leaves 40)", note: "Co-equal route to D18. S12 leaves 60, where dart 2 targets S20 to set up Tops next visit." }
+  ],
+  "71_3": [
+    { type: "best", route: "T13 → D16", miss: "If S13 : S18 → D20", note: "Optimal parity route. T13 leaves 32 (two darts at D16). S13 leaves 58 (S18 → Tops)." },
+    { type: "best", route: "T17 → D10", miss: "If S17 : S14 → D20", note: "Co-equal baseline via 17s. T17 leaves 20. S17 leaves 54 (S14 → Tops)." }
+  ],
+  "71_2": [
+    { type: "best", route: "T13 → D16", miss: "If S13 : S18 (Leaves 40)", note: "Direct parity route to D16. S13 leaves 58, where dart 2 targets S18 to set up Tops next visit." },
+    { type: "best", route: "T17 → D10", miss: "If S17 : S14 (Leaves 40)", note: "Co-equal route to D10. S17 leaves 54, where dart 2 targets S14 to set up Tops next visit." }
+  ],
+
+  // 70 TO 51 BLOCK
+  "70_3": [
+    { type: "best", route: "T20 → D5", miss: "If S20 : S18 → D16 | If S20 : S10 → D20", note: "Corridor play. T20 leaves D5; S20 leaves 50, allowing 2 darts to convert via S18 to D16 or S10 to Tops." },
+    { type: "best", route: "T10 → D20", miss: "If S10 : S20 → D20", note: "Co-equal baseline route to Tops. T10 leaves 40 (two darts at Tops); S10 leaves 60 (S20 → Tops)." },
+    { type: "alt", route: "T18 → D8", miss: "If S18 : S16 → D18", note: "Alternative lower-board route to D8. S18 leaves 52 (S16 → D18)." }
+  ],
+  "70_2": [
+    { type: "best", route: "T20 → D5", miss: "If S20 : D25", note: "Universal Corridor rule with 2 darts. Hitting T20 leaves D5; missing into S20 leaves 50 for an immediate shot at Bull. Guarantees a dart at a double." },
+    { type: "best", route: "T10 → D20", miss: "If S10 : S20 (Leaves 40)", note: "Co-equal parity route to Tops. T10 leaves 40; S10 leaves 60, where dart 2 targets S20 to set up Tops next visit." }
+  ],
+  "69_3": [
+    { type: "best", route: "T19 → D6", miss: "If S19 : S18 → D16 | If S19 : S10 → D20", note: "Corridor route. T19 leaves 12 (two darts at D6); S19 leaves 50 (S18 → D16 or S10 → Tops)." },
+    { type: "best", route: "T15 → D12", miss: "If S15 : S14 → D20", note: "Co-equal parity route to D12. T15 leaves 24; S15 leaves 54 (S14 → Tops)." }
+  ],
+  "69_2": [
+    { type: "best", route: "T19 → D6", miss: "If S19 : D25", note: "Universal Corridor route. T19 leaves D6; S19 leaves 50 for Bull. Guarantees a dart at a double." },
+    { type: "best", route: "T15 → D12", miss: "If S15 : S14 (Leaves 40)", note: "Co-equal parity route to D12. S15 leaves 54, targeting S14 to set up Tops next visit." }
+  ],
+  "68_3": [
+    { type: "best", route: "T18 → D7", miss: "If S18 : S18 → D16 | If S18 : S10 → D20", note: "Corridor route. T18 leaves 14; S18 leaves 50 (S18 → D16)." },
+    { type: "best", route: "T20 → D4", miss: "If S20 : S16 → D16", note: "Co-equal upper-board route. T20 leaves 8; S20 leaves 48 (S16 → D16)." }
+  ],
+  "68_2": [
+    { type: "best", route: "T18 → D7", miss: "If S18 : D25", note: "Universal Corridor route. T18 leaves D7; S18 leaves 50 for Bull. Guarantees a dart at a double." },
+    { type: "best", route: "T20 → D4", miss: "If S20 : S16 (Leaves 32)", note: "Co-equal direct route. T20 leaves D4; S20 leaves 48, where S16 sets up D16 next visit." }
+  ],
+  "67_3": [
+    { type: "best", route: "T17 → D8", miss: "If S17 : S18 → D16 | If S17 : S10 → D20", note: "Corridor route. T17 leaves 16 (two darts at D8); S17 leaves 50 (S18 → D16)." },
+    { type: "alt", route: "T9 → D20", miss: "If S9 : S18 → D20", note: "Alternative route to Tops. T9 leaves 40; S9 leaves 58 (S18 → Tops)." }
+  ],
+  "67_2": [
+    { type: "best", route: "T17 → D8", miss: "If S17 : D25", note: "Universal Corridor route. T17 leaves D8; S17 leaves 50 for Bull. Guarantees a dart at a double." },
+    { type: "alt", route: "T9 → D20", miss: "If S9 : S18 (Leaves 40)", note: "Parity alternative to Tops. T9 leaves Tops; S9 leaves 58, targeting S18 to leave Tops next visit." }
+  ],
+  "66_3": [
+    { type: "best", route: "T16 → D9", miss: "If S16 : S18 → D16 | If S16 : S10 → D20", note: "Corridor route. T16 leaves 18; S16 leaves 50 (S18 → D16)." },
+    { type: "best", route: "T10 → D18", miss: "If S10 : S16 → D20", note: "Co-equal parity route to D18. T10 leaves 36; S10 leaves 56 (S16 → Tops)." },
+    { type: "best", route: "T14 → D12", miss: "If S14 : S12 → D20", note: "Co-equal parity route to D12. T14 leaves 24; S14 leaves 52 (S12 → Tops or S20 → D16)." }
+  ],
+  "66_2": [
+    { type: "best", route: "T16 → D9", miss: "If S16 : D25", note: "Universal Corridor route. T16 leaves D9; S16 leaves 50 for Bull. Guarantees a dart at a double." },
+    { type: "best", route: "T10 → D18", miss: "If S10 : S16 (Leaves 40)", note: "Co-equal parity route to D18. S10 leaves 56, targeting S16 to set up Tops next visit." }
+  ],
+  "65_3": [
+    { type: "best", route: "T15 → D10", miss: "If S15 : S18 → D16 | If S15 : S10 → D20", note: "Corridor route. T15 leaves 20 (two darts at D10); S15 leaves 50 (S18 → D16)." },
+    { type: "best", route: "T19 → D4", miss: "If S19 : S14 → D16", note: "Co-equal upper-board route. T19 leaves 8; S19 leaves 46 (S14 → D16)." },
+    { type: "alt", route: "25 → D20", miss: "If D25 : S7 → D4", note: "Modern center-ring option. 25 leaves 40 (two darts at Tops); D25 leaves 15." }
+  ],
+  "65_2": [
+    { type: "best", route: "25 → D20", miss: "If D25 : Aim S7 (Leaves 8) | If Outer Ring Miss : S15 (Leaves 50)", note: "Modern PDC percentage standard. 25 leaves Tops with a high-surface center-ring target." },
+    { type: "best", route: "T15 → D10", miss: "If S15 : D25", note: "Universal Corridor route. T15 leaves D10; S15 leaves 50 for Bull. Guarantees a dart at a double." }
+  ],
+  "64_3": [
+    { type: "best", route: "T16 → D8", miss: "If S16 : S16 → D16", note: "Optimal power-of-two route. T16 leaves 16 (two darts at D8); S16 leaves 48 (S16 → D16)." },
+    { type: "best", route: "T14 → D11", miss: "If S14 : S18 → D16 | If S14 : S10 → D20", note: "Universal Corridor route. T14 leaves 22; S14 leaves 50 (S18 → D16)." },
+    { type: "alt", route: "D16 → D16", miss: "If S16 : S16 → D16", note: "Direct double-double attack. Hitting D16 leaves D16; missing into S16 leaves 48 (S16 → D16)." }
+  ],
+  "64_2": [
+    { type: "best", route: "T16 → D8", miss: "If S16 : S16 (Leaves 32)", note: "Optimal power-of-two route. T16 leaves D8; S16 leaves 48, where S16 sets up D16 next visit." },
+    { type: "best", route: "T14 → D11", miss: "If S14 : D25", note: "Universal Corridor route. T14 leaves D11; S14 leaves 50 for Bull. Guarantees a dart at a double." },
+    { type: "alt", route: "D16 → D16", miss: "If S16 : S16 (Leaves 32)", note: "Direct double-double attack. Hitting D16 leaves D16; missing into S16 leaves 48, where S16 sets up D16 next visit." }
+  ],
+  "63_3": [
+    { type: "best", route: "T13 → D12", miss: "If S13 : S18 → D16 | If S13 : S10 → D20", note: "Corridor route. T13 leaves 24 (two darts at D12); S13 leaves 50 (S18 → D16)." },
+    { type: "best", route: "T17 → D6", miss: "If S17 : S14 → D16", note: "Co-equal route via 17s. T17 leaves 12; S17 leaves 46 (S14 → D16)." }
+  ],
+  "63_2": [
+    { type: "best", route: "T13 → D12", miss: "If S13 : D25", note: "Universal Corridor route. T13 leaves D12; S13 leaves 50 for Bull. Guarantees a dart at a double." },
+    { type: "best", route: "T17 → D6", miss: "If S17 : S14 (Leaves 32)", note: "Co-equal route. T17 leaves D6; S17 leaves 46, targeting S14 to set up D16 next visit." }
+  ],
+  "62_3": [
+    { type: "best", route: "T10 → D16", miss: "If S10 : S20 → D16", note: "Optimal parity route to D16. T10 leaves 32 (two darts at D16); S10 leaves 52 (S20 → D16)." },
+    { type: "best", route: "T12 → D13", miss: "If S12 : S18 → D16 | If S12 : S10 → D20", note: "Universal Corridor route. T12 leaves 26; S12 leaves 50 (S18 → D16)." }
+  ],
+  "62_2": [
+    { type: "best", route: "T10 → D16", miss: "If S10 : S12 (Leaves 40) | S10 : S20 (Leaves 32)", note: "Optimal parity route to D16. T10 leaves D16; S10 leaves 52, where S12 leaves Tops or S20 leaves D16 next visit." },
+    { type: "best", route: "T12 → D13", miss: "If S12 : D25", note: "Universal Corridor route. T12 leaves D13; S12 leaves 50 for Bull. Guarantees a dart at a double." }
+  ],
+  "61_3": [
+    { type: "best", route: "T15 → D8", miss: "If S15 : S14 → D16", note: "Optimal professional route. T15 leaves 16 (two darts at D8); S15 leaves 46 (S14 → D16)." },
+    { type: "best", route: "T11 → D14", miss: "If S11 : S18 → D16 | If S11 : S10 → D20", note: "Universal Corridor route. T11 leaves 28; S11 leaves 50 (S18 → D16)." },
+    { type: "alt", route: "25 → D18", miss: "If D25 : S3 → D4", note: "Modern center-ring option. 25 leaves 36 (two darts at D18)." }
+  ],
+  "61_2": [
+    { type: "best", route: "T15 → D8", miss: "If S15 : S14 (Leaves 32)", note: "Optimal professional route. T15 leaves D8; S15 leaves 46, targeting S14 to set up D16 next visit." },
+    { type: "best", route: "T11 → D14", miss: "If S11 : D25", note: "Universal Corridor route. T11 leaves D14; S11 leaves 50 for Bull. Guarantees a dart at a double." },
+    { type: "alt", route: "25 → D18", miss: "If D25 : S3 (Leaves 8) | If Outer Ring Miss : S11 (Leaves 50)", note: "Center-ring pressure option. 25 leaves 36 for D18." }
+  ],
+  "60_3": [{ type: "best", route: "S20 → D20", miss: "If T20 : Bust | If S1 : S19 → D20 | If S5 : S15 → D20", note: "Primary rule: never throw at a treble on 60. Single 20 leaves Tops with two darts in hand." }],
+  "60_2": [{ type: "best", route: "S20 → D20", miss: "If T20 : Bust | If S1 : S19 (Leaves 40) | If S5 : S15 (Leaves 40)", note: "Single 20 leaves Tops. Accidental T20 busts; misses into 1 or 5 target 19 or 15 to leave Tops next visit." }],
+  "59_3": [{ type: "best", route: "S19 → D20", miss: "If T19 : Bust | If S3 : S16 → D20 | If S7 : S12 → D20", note: "Single 19 leaves Tops with two darts in hand. Neighbor misses (3 or 7) route cleanly to Tops." }],
+  "59_2": [{ type: "best", route: "S19 → D20", miss: "If T19 : Bust | If S3 : S16 (Leaves 40) | If S7 : S12 (Leaves 40)", note: "Single 19 leaves Tops. Neighbor misses (3 or 7) target 16 or 12 to leave Tops next visit." }],
+  "58_3": [{ type: "best", route: "S18 → D20", miss: "If T18 : Bust | If S4 : S14 → D20 | If S1 : S17 → D20", note: "Primary parity route. Single 18 leaves Tops with two darts in hand." }],
+  "58_2": [{ type: "best", route: "S18 → D20", miss: "If T18 : Bust | If S4 : S14 (Leaves 40) | If S1 : S17 (Leaves 40)", note: "Single 18 leaves Tops. Neighbor misses (4 or 1) target 14 or 17 to leave Tops next visit." }],
+  "57_3": [
+    { type: "best", route: "S17 → D20", miss: "If T17 : Bust | If S2 : S15 → D20 | If S3 : S14 → D20", note: "Primary route to Tops. Single 17 leaves Tops with two darts in hand." },
+    { type: "alt", route: "S19 → D19", miss: "If T19 : Bust | If S3 : S16 → D19 | If S7 : S12 → D19", note: "Upper-board alternative for 19-hitters leaving D19." }
+  ],
+  "57_2": [
+    { type: "best", route: "S17 → D20", miss: "If T17 : Bust | If S2 : S15 (Leaves 40) | If S3 : S14 (Leaves 40)", note: "Single 17 leaves Tops. Neighbor misses target 15 or 14 to leave Tops next visit." },
+    { type: "alt", route: "S19 → D19", miss: "If T19 : Bust | If S3 : S16 (Leaves 38)", note: "Alternative route leaving D19." }
+  ],
+  "56_3": [
+    { type: "best", route: "S16 → D20", miss: "If T16 : D4 | If S7 : S17 → D16 | If S8 : S16 → D16", note: "Primary route to Tops. Catching accidental T16 safely leaves D4 with two darts in hand." },
+    { type: "best", route: "S20 → D18", miss: "If T20 : Bust | If S1 : S15 → D20 | If S5 : S19 → D16", note: "Co-equal upper-board route to D18. Single 20 leaves 36 with two darts at D18." }
+  ],
+  "56_2": [
+    { type: "best", route: "S16 → D20", miss: "If T16 : D4 | If S7 : S17 (Leaves 32) | If S8 : S16 (Leaves 32)", note: "Optimal safety route. Single 16 leaves Tops. Accidental T16 leaves D4 immediately." },
+    { type: "best", route: "S20 → D18", miss: "If T20 : Bust | If S1 : S15 (Leaves 40) | If S5 : S19 (Leaves 32)", note: "Co-equal route to D18. S20 leaves D18. Accidental T20 busts." }
+  ],
+  "55_3": [
+    { type: "best", route: "S15 → D20", miss: "If T15 : D5 | If S10 : S13 → D16 | If S2 : S13 → D20", note: "Primary route to Tops. Accidental T15 leaves D5 with two darts in hand." },
+    { type: "best", route: "S19 → D18", miss: "If T19 : Bust | If S3 : S16 → D18 | If S7 : S16 → D16", note: "Co-equal parity route to D18. S19 leaves 36 (two darts at D18)." }
+  ],
+  "55_2": [
+    { type: "best", route: "S15 → D20", miss: "If T15 : D5 | If S10 : S13 (Leaves 32) | If S2 : S13 (Leaves 40)", note: "Optimal route to Tops. Single 15 leaves Tops; accidental T15 leaves D5 immediately." },
+    { type: "best", route: "S19 → D18", miss: "If T19 : Bust | If S3 : S16 (Leaves 36) | If S7 : S16 (Leaves 32)", note: "Co-equal parity route to D18. S19 leaves D18." }
+  ],
+  "54_3": [
+    { type: "best", route: "S14 → D20", miss: "If T14 : D6 | If S9 : S13 → D16 | If S11 : S11 → D16", note: "Primary route to Tops. Accidental T14 leaves D6 with two darts in hand." },
+    { type: "best", route: "S18 → D18", miss: "If T18 : Bust | If S4 : S18 → D16 | If S1 : S13 → D20", note: "Co-equal parity route to D18. S18 leaves 36 (two darts at D18)." }
+  ],
+  "54_2": [
+    { type: "best", route: "S14 → D20", miss: "If T14 : D6 | If S9 : S13 (Leaves 32) | If S11 : S11 (Leaves 32)", note: "Optimal route to Tops. Single 14 leaves Tops; accidental T14 leaves D6 immediately." },
+    { type: "best", route: "S18 → D18", miss: "If T18 : Bust | If S4 : S18 (Leaves 32) | If S1 : S13 (Leaves 40)", note: "Co-equal parity route to D18. S18 leaves D18." }
+  ],
+  "53_3": [
+    { type: "best", route: "S13 → D20", miss: "If T13 : D7 | If S6 : S15 → D16 | If S10 : S11 → D16", note: "Primary route to Tops. Accidental T13 leaves D7 with two darts in hand." },
+    { type: "best", route: "S17 → D18", miss: "If T17 : Bust | If S2 : S15 → D18 | If S3 : S18 → D16", note: "Co-equal parity route to D18. S17 leaves 36 (two darts at D18)." }
+  ],
+  "53_2": [
+    { type: "best", route: "S13 → D20", miss: "If T13 : D7 | If S6 : S15 (Leaves 32) | If S10 : S11 (Leaves 32)", note: "Optimal route to Tops. Single 13 leaves Tops; accidental T13 leaves D7 immediately." },
+    { type: "best", route: "S17 → D18", miss: "If T17 : Bust | If S2 : S15 (Leaves 36) | If S3 : S18 (Leaves 32)", note: "Co-equal route to D18. S17 leaves D18." }
+  ],
+  "52_3": [
+    { type: "best", route: "S20 → D16", miss: "If T20 : Bust | If S1 : S19 → D16 | If S5 : S15 → D16", note: "Elite parity route to D16. Single 20 leaves 32 with two darts at D16. Missing into 1 or 5 leaves 51 or 47 for an easy pivot." },
+    { type: "best", route: "S12 → D20", miss: "If T12 : D8 | If S5 : S15 → D16 | If S9 : S11 → D16", note: "Co-equal route to Tops. Accidental T12 leaves D8 with two darts in hand." }
+  ],
+  "52_2": [
+    { type: "best", route: "S20 → D16", miss: "If T20 : Bust | If S1 : S19 (Leaves 32) | If S5 : S15 (Leaves 32)", note: "Premier parity route to D16. S20 leaves D16. Missing into 1 or 5 allows quick setup to D16 next visit." },
+    { type: "best", route: "S12 → D20", miss: "If T12 : D8 | If S5 : S15 (Leaves 32) | If S9 : S11 (Leaves 32)", note: "Co-equal route to Tops. S12 leaves Tops; accidental T12 leaves D8 immediately." }
+  ],
+  "51_3": [
+    { type: "best", route: "S19 → D16", miss: "If T19 : Bust | If S3 : S16 → D16 | If S7 : S12 → D16", note: "Elite parity route to D16. Single 19 leaves 32 with two darts at D16. Missing into 3 or 7 sets up D16." },
+    { type: "best", route: "S11 → D20", miss: "If T11 : D9 | If S14 : S17 → D20 | If S8 : S11 → D16", note: "Co-equal route to Tops. Accidental T11 leaves D9 with two darts in hand." }
+  ],
+  "51_2": [
+    { type: "best", route: "S19 → D16", miss: "If T19 : Bust | If S3 : S16 (Leaves 32) | If S7 : S12 (Leaves 32)", note: "Premier parity route to D16. S19 leaves D16. Missing into 3 or 7 targets 16 or 12 to leave D16 next visit." },
+    { type: "best", route: "S11 → D20", miss: "If T11 : D9 | If S14 : S17 (Leaves 20) | If S8 : S11 (Leaves 32)", note: "Co-equal route to Tops. S11 leaves Tops; accidental T11 leaves D9 immediately." }
+  ],
+
+  // 50 TO 41 BLOCK
+  "50_3": [
+    { type: "best", route: "S10 → D20", miss: "If T10 : D10 | If S15 : S15 → D10 | If S6 : S12 → D16", note: "Bust-safe route to Tops. S10 leaves 40 (two darts at Tops); accidental T10 safely leaves 20 (two darts at D10)." },
+    { type: "best", route: "S18 → D16", miss: "If T18 : Bust | If S4 : S14 → D16 | If S1 : S17 → D16", note: "Co-equal parity route to D16. S18 leaves 32 (two darts at D16). Caution: accidental T18 busts." },
+    { type: "alt", route: "D25", miss: "If 25 : S9 → D8 | If 25 : S17 → D4", note: "Direct Bullseye attempt with 3 darts in hand. A 25 hit leaves 25, setting up D8 via S9." }
+  ],
+  "50_2": [
+    { type: "best", route: "S10 → D20", miss: "If T10 : D10 | If S15 : S15 (Leaves 20) | If S6 : S12 (Leaves 32)", note: "Bust-safe route to Tops. S10 leaves Tops; accidental T10 leaves D10 immediately." },
+    { type: "best", route: "S18 → D16", miss: "If T18 : Bust | If S4 : S14 (Leaves 32) | If S1 : S17 (Leaves 32)", note: "Co-equal parity route to D16. S18 leaves D16. Accidental T18 busts." },
+    { type: "alt", route: "D25", miss: "If 25 : S9 (Leaves 16) | If 25 : S17 (Leaves 8)", note: "Direct Bullseye pressure attempt. Catching 25 requires single setup with dart 2." }
+  ],
+  "50_1": [{ type: "best", route: "D25", miss: "If 25 : Bust (Turn Over)", note: "Only mathematical checkout with 1 dart in hand." }],
+  "49_3": [
+    { type: "best", route: "S17 → D16", miss: "If T17 : Bust | If S2 : S15 → D16 | If S3 : S14 → D16", note: "Primary parity route to D16. S17 leaves 32 (two darts at D16). Caution: accidental T17 busts." },
+    { type: "best", route: "S9 → D20", miss: "If T9 : D11 | If S14 : S15 → D20 | If S12 : S17 → D20", note: "Bust-proof route to Tops. S9 leaves 40; accidental T9 leaves 22 (two darts at D11)." }
+  ],
+  "49_2": [
+    { type: "best", route: "S17 → D16", miss: "If T17 : Bust | If S2 : S15 (Leaves 32) | If S3 : S14 (Leaves 32)", note: "Primary route to D16. S17 leaves D16. Accidental T17 busts." },
+    { type: "best", route: "S9 → D20", miss: "If T9 : D11 | If S14 : S15 (Leaves 20) | If S12 : S17 (Leaves 20)", note: "Bust-proof route to Tops. S9 leaves Tops; accidental T9 leaves D11 immediately." }
+  ],
+  "48_3": [
+    { type: "best", route: "S16 → D16", miss: "If T16 : Bust | If S7 : S9 → D16 | If S8 : S8 → D16", note: "Primary parity route to D16. S16 leaves 32 (two darts at D16). Caution: accidental T16 busts." },
+    { type: "best", route: "S8 → D20", miss: "If T8 : D12 | If S16 : S16 → D16 | If S11 : S17 → D20", note: "Bust-proof route to Tops. S8 leaves 40; accidental T8 safely leaves 24 (two darts at D12)." }
+  ],
+  "48_2": [
+    { type: "best", route: "S16 → D16", miss: "If T16 : Bust | If S7 : S9 (Leaves 32) | If S8 : S8 (Leaves 32)", note: "Primary parity route to D16. S16 leaves D16. Accidental T16 busts." },
+    { type: "best", route: "S8 → D20", miss: "If T8 : D12 | If S16 : S16 (Leaves 16) | If S11 : S17 (Leaves 20)", note: "Bust-proof route to Tops. S8 leaves Tops; accidental T8 leaves D12 immediately." }
+  ],
+  "47_3": [
+    { type: "best", route: "S15 → D16", miss: "If T15 : D1 | If S10 : S5 → D16 | If S2 : S13 → D16", note: "Primary parity route to D16. S15 leaves 32; accidental T15 safely leaves 2 (two darts at D1)." },
+    { type: "best", route: "S7 → D20", miss: "If T7 : D13 | If S19 : S8 → D20 | If S16 : S11 → D20", note: "Co-equal route to Tops. S7 leaves 40; accidental T7 leaves 26 (two darts at D13)." }
+  ],
+  "47_2": [
+    { type: "best", route: "S15 → D16", miss: "If T15 : D1 | If S10 : S5 (Leaves 32) | If S2 : S13 (Leaves 32)", note: "Primary route to D16. S15 leaves D16; accidental T15 leaves D1 immediately." },
+    { type: "best", route: "S7 → D20", miss: "If T7 : D13 | If S19 : S8 (Leaves 20) | If S16 : S11 (Leaves 20)", note: "Co-equal route to Tops. S7 leaves Tops; accidental T7 leaves D13 immediately." }
+  ],
+  "46_3": [
+    { type: "best", route: "S14 → D16", miss: "If T14 : D2 | If S9 : S5 → D16 | If S11 : S3 → D16", note: "Primary parity route to D16. S14 leaves 32; accidental T14 safely leaves 4 (two darts at D2)." },
+    { type: "best", route: "S6 → D20", miss: "If T6 : D14 | If S10 : S16 → D20 | If S13 : S13 → D20", note: "Co-equal route to Tops. S6 leaves 40; accidental T6 leaves 28 (two darts at D14)." },
+    { type: "alt", route: "S10 → D18", miss: "If T10 : D8 | If S15 : S13 → D18 | If S6 : S8 → D16", note: "Parity alternative to D18. S10 leaves 36; accidental T10 safely leaves 16 (two darts at D8)." }
+  ],
+  "46_2": [
+    { type: "best", route: "S14 → D16", miss: "If T14 : D2 | If S9 : S5 (Leaves 32) | If S11 : S3 (Leaves 32)", note: "Optimal route to D16. S14 leaves D16; accidental T14 leaves D2 immediately." },
+    { type: "best", route: "S6 → D20", miss: "If T6 : D14 | If S10 : S16 (Leaves 20) | If S13 : S13 (Leaves 20)", note: "Co-equal route to Tops. S6 leaves Tops; accidental T6 leaves D14 immediately." },
+    { type: "alt", route: "S10 → D18", miss: "If T10 : D8 | If S15 : S13 (Leaves 18) | If S6 : S8 (Leaves 32)", note: "Alternative route to D18. S10 leaves D18; accidental T10 leaves D8 immediately." }
+  ],
+  "45_3": [
+    { type: "best", route: "S13 → D16", miss: "If T13 : D3 | If S6 : S7 → D16 | If S10 : S3 → D16", note: "Primary parity route to D16. S13 leaves 32; accidental T13 safely leaves 6 (two darts at D3)." },
+    { type: "best", route: "S5 → D20", miss: "If T5 : D15 | If S20 : S5 → D20 | If S1 : S4 → D20", note: "Co-equal route to Tops. S5 leaves 40; accidental T5 leaves 30 (two darts at D15)." }
+  ],
+  "45_2": [
+    { type: "best", route: "S13 → D16", miss: "If T13 : D3 | If S6 : S7 (Leaves 32) | If S10 : S3 (Leaves 32)", note: "Optimal route to D16. S13 leaves D16; accidental T13 leaves D3 immediately." },
+    { type: "best", route: "S5 → D20", miss: "If T5 : D15 | If S20 : S5 (Leaves 20) | If S1 : S4 (Leaves 40)", note: "Co-equal route to Tops. S5 leaves Tops; accidental T5 leaves D15 immediately." }
+  ],
+  "44_3": [
+    { type: "best", route: "S12 → D16", miss: "If T12 : D4 | If S5 : S7 → D16 | If S9 : S3 → D16", note: "Bust-proof route to D16. S12 leaves 32; accidental T12 safely leaves 8 (two darts at D4)." },
+    { type: "best", route: "S4 → D20", miss: "If T4 : D16 | If S18 : S6 → D20 | If S13 : S11 → D20", note: "Bust-proof route to Tops. S4 leaves Tops; accidental T4 upgrades directly to D16 with two darts in hand." }
+  ],
+  "44_2": [
+    { type: "best", route: "S12 → D16", miss: "If T12 : D4 | If S5 : S7 (Leaves 32) | If S9 : S3 (Leaves 32)", note: "Bust-proof route to D16. S12 leaves D16; accidental T12 leaves D4 immediately." },
+    { type: "best", route: "S4 → D20", miss: "If T4 : D16 | If S18 : S6 (Leaves 20) | If S13 : S11 (Leaves 20)", note: "Bust-proof route to Tops. S4 leaves Tops; accidental T4 upgrades directly to D16 immediately." }
+  ],
+  "43_3": [
+    { type: "best", route: "S11 → D16", miss: "If T11 : D5 | If S8 : S3 → D16 | If S14 : S17 → D12", note: "Primary parity route to D16. S11 leaves 32; accidental T11 leaves 10 (two darts at D5)." },
+    { type: "best", route: "S3 → D20", miss: "If T3 : D17 | If S19 : S4 → D20 | If S17 : S6 → D20", note: "Co-equal route to Tops. S3 leaves 40; accidental T3 leaves 34 (two darts at D17)." }
+  ],
+  "43_2": [
+    { type: "best", route: "S11 → D16", miss: "If T11 : D5 | If S8 : S3 (Leaves 32) | If S14 : S17 (Leaves 12)", note: "Primary route to D16. S11 leaves D16; accidental T11 leaves D5 immediately." },
+    { type: "best", route: "S3 → D20", miss: "If T3 : D17 | If S19 : S4 (Leaves 20) | If S17 : S6 (Leaves 20)", note: "Co-equal route to Tops. S3 leaves Tops; accidental T3 leaves D17 immediately." }
+  ],
+  "42_3": [
+    { type: "best", route: "S10 → D16", miss: "If T10 : D6 | If S15 : S7 → D20 | If S6 : S4 → D16", note: "Primary parity route to D16. S10 leaves 32; accidental T10 leaves 12 (two darts at D6)." },
+    { type: "best", route: "S2 → D20", miss: "If T2 : D18 | If S17 : S5 → D20 | If S15 : S7 → D20", note: "Bust-proof route to Tops. S2 leaves Tops; accidental T2 upgrades directly to 36 (two darts at D18)." }
+  ],
+  "42_2": [
+    { type: "best", route: "S10 → D16", miss: "If T10 : D6 | If S15 : S7 (Leaves 20) | If S6 : S4 (Leaves 32)", note: "Optimal route to D16. S10 leaves D16; accidental T10 leaves D6 immediately." },
+    { type: "best", route: "S2 → D20", miss: "If T2 : D18 | If S17 : S5 (Leaves 20) | If S15 : S7 (Leaves 20)", note: "Bust-proof route to Tops. S2 leaves Tops; accidental T2 upgrades directly to D18 immediately." }
+  ],
+  "41_3": [
+    { type: "best", route: "S9 → D16", miss: "If T9 : D7 | If S14 : S11 → D8 | If S12 : S13 → D8", note: "Primary parity route to D16. S9 leaves 32; accidental T9 leaves 14 (two darts at D7)." },
+    { type: "best", route: "S1 → D20", miss: "If T1 : D19 | If S20 : S5 → D8 | If S18 : S7 → D8", note: "Bust-proof route to Tops. S1 leaves Tops; accidental T1 leaves 38 (two darts at D19)." }
+  ],
+  "41_2": [
+    { type: "best", route: "S9 → D16", miss: "If T9 : D7 | If S14 : S11 (Leaves 16) | If S12 : S13 (Leaves 16)", note: "Primary route to D16. S9 leaves D16; accidental T9 leaves D7 immediately." },
+    { type: "best", route: "S1 → D20", miss: "If T1 : D19 | If S20 : S5 (Leaves 16) | If S18 : S7 (Leaves 16)", note: "Bust-proof route to Tops. S1 leaves Tops; accidental T1 leaves D19 immediately." }
+  ],
+
+  // 40 TO 2 BLOCK
+  "40_3": [{ type: "best", route: "D20", miss: "If S20 : D10 | If S20 → S10 : D5", note: "Primary route to Tops. Inside single 20 leaves D10 with two darts in hand." }],
+  "40_2": [{ type: "best", route: "D20", miss: "If S20 : D10", note: "Direct shot at Tops. Inside single 20 leaves D10 with remaining dart." }],
+  "40_1": [{ type: "best", route: "D20", miss: "If S20 : Bust (Turn Over)", note: "Direct 1-dart checkout for Tops." }],
+  "39_3": [
+    { type: "best", route: "S7 → D16", miss: "If T7 : D9 | If S19 : S19 → D10", note: "Primary parity route to D16. S7 leaves 32 (two darts at D16); accidental T7 leaves 18 (two darts at D9)." },
+    { type: "best", route: "S19 → D10", miss: "If T19 : Bust | If S7 : S7 → D16 | If S3 : S16 → D10", note: "Co-equal upper-board route. S19 leaves 20 (two darts at D10). Caution: accidental T19 busts." }
+  ],
+  "39_2": [
+    { type: "best", route: "S7 → D16", miss: "If T7 : D9 | If S19 : D10", note: "Optimal route to D16. S7 leaves D16; accidental T7 leaves D9 immediately." },
+    { type: "best", route: "S19 → D10", miss: "If T19 : Bust | If S7 : D16", note: "Co-equal route to D10. S19 leaves D10. Accidental T19 busts." }
+  ],
+  "39_1": [{ type: "setup", route: "S7", miss: "If T7 : Leaves 18 | If S19 : Leaves 20", note: "Sets up D16 for next visit. S19 miss safely sets up D10." }],
+  "38_3": [
+    { type: "best", route: "D19", miss: "If S19 : S3 → D8 | If S19 : S11 → D4", note: "Direct route to D19. Inside single 19 leaves 19, requiring a setup dart to D8 or D4." },
+    { type: "best", route: "S6 → D16", miss: "If T6 : D10 | If S10 : S12 → D8", note: "Co-equal parity setup to D16. S6 leaves 32 (two darts at D16); accidental T6 leaves 20 (two darts at D10)." }
+  ],
+  "38_2": [
+    { type: "best", route: "D19", miss: "If S19 : S3 (Leaves 16) | If S19 : S11 (Leaves 8)", note: "Direct route to D19. Inside single 19 leaves 19 (requires setup with dart 2)." },
+    { type: "alt", route: "S6 → D16", miss: "If T6 : D10 | If S10 : D14", note: "Defensive setup to D16. S6 leaves D16; accidental T6 leaves D10 immediately." }
+  ],
+  "38_1": [{ type: "best", route: "D19", miss: "If S19 : Bust (Turn Over)", note: "Only 1-dart checkout for 38." }],
+  "37_3": [
+    { type: "best", route: "S5 → D16", miss: "If T5 : D11 | If S20 : S1 → D8 | If S1 : S4 → D16", note: "Primary parity route to D16. S5 leaves 32 (two darts at D16); accidental T5 leaves 22 (two darts at D11)." },
+    { type: "best", route: "S17 → D10", miss: "If T17 : Bust | If S3 : S14 → D10 | If S2 : S15 → D10", note: "Co-equal route to D10. S17 leaves 20 (two darts at D10). Caution: accidental T17 busts." }
+  ],
+  "37_2": [
+    { type: "best", route: "S5 → D16", miss: "If T5 : D11 | If S20 : Bust | If S1 : D18", note: "Optimal route to D16. S5 leaves D16; accidental T5 leaves D11 immediately." },
+    { type: "best", route: "S17 → D10", miss: "If T17 : Bust | If S3 : D17 | If S2 : D15", note: "Co-equal route to D10. S17 leaves D10. Accidental T17 busts." }
+  ],
+  "37_1": [{ type: "setup", route: "S5", miss: "If T5 : Leaves 22 | If S1 : Leaves 36", note: "Sets up D16 for next visit. Drift into S1 leaves D18." }],
+  "36_3": [{ type: "best", route: "D18", miss: "If S18 : D9 | If S18 → S9 : Bust", note: "Direct route to D18. Inside single 18 leaves D9 with two darts in hand." }],
+  "36_2": [{ type: "best", route: "D18", miss: "If S18 : D9", note: "Direct route to D18. Inside single 18 leaves D9 with remaining dart." }],
+  "36_1": [{ type: "best", route: "D18", miss: "If S18 : Bust (Turn Over)", note: "Direct 1-dart checkout for D18." }],
+  "35_3": [
+    { type: "best", route: "S3 → D16", miss: "If T3 : D13 | If S19 : D8 | If S17 : S2 → D8", note: "Primary parity route to D16. S3 leaves 32 (two darts at D16); accidental T3 leaves 26 (two darts at D13)." },
+    { type: "best", route: "S19 → D8", miss: "If T19 : Bust | If S3 : D16 | If S7 : S12 → D8", note: "Co-equal route to D8. S19 leaves 16 (two darts at D8). Caution: accidental T19 busts." }
+  ],
+  "35_2": [
+    { type: "best", route: "S3 → D16", miss: "If T3 : D13 | If S19 : D8 | If S17 : D9", note: "Optimal route to D16. S3 leaves D16; accidental T3 leaves D13 immediately." },
+    { type: "best", route: "S19 → D8", miss: "If T19 : Bust | If S3 : D16 | If S7 : D14", note: "Co-equal route to D8. S19 leaves D8. Accidental T19 busts." }
+  ],
+  "35_1": [{ type: "setup", route: "S3", miss: "If T3 : Leaves 26 | If S19 : Leaves 16", note: "Sets up D16 for next visit. Drift into S19 leaves D8." }],
+  "34_3": [
+    { type: "best", route: "D17", miss: "If S17 : S1 → D8 | If S17 : S9 → D4", note: "Direct route to D17. Inside single 17 leaves 17, requiring a setup dart to D8 or D4." },
+    { type: "best", route: "S2 → D16", miss: "If T2 : D14 | If S17 : D8 | If S15 : S3 → D8", note: "Co-equal parity setup to D16. S2 leaves 32 (two darts at D16); accidental T2 safely leaves 28 (two darts at D14)." }
+  ],
+  "34_2": [
+    { type: "best", route: "D17", miss: "If S17 : S1 (Leaves 16) | If S17 : S9 (Leaves 8)", note: "Direct route to D17. Inside single 17 leaves 17 (requires setup with dart 2)." },
+    { type: "alt", route: "S2 → D16", miss: "If T2 : D14 | If S17 : D8", note: "Defensive setup to D16. S2 leaves D16; accidental T2 leaves D14 immediately." }
+  ],
+  "34_1": [{ type: "best", route: "D17", miss: "If S17 : Bust (Turn Over)", note: "Only 1-dart checkout for 34." }],
+  "33_3": [
+    { type: "best", route: "S1 → D16", miss: "If T1 : D15 | If S20 : D6 | If S18 : S1 → D7", note: "Primary parity route to D16. S1 leaves 32 (two darts at D16); accidental T1 leaves 30 (two darts at D15)." },
+    { type: "best", route: "S17 → D8", miss: "If T17 : Bust | If S3 : S14 → D8 | If S2 : S15 → D8", note: "Co-equal route to D8. S17 leaves 16 (two darts at D8). Caution: accidental T17 busts." }
+  ],
+  "33_2": [
+    { type: "best", route: "S1 → D16", miss: "If T1 : D15 | If S20 : D6 | If S18 : D7", note: "Optimal route to D16. S1 leaves D16; accidental T1 leaves D15 immediately." },
+    { type: "best", route: "S17 → D8", miss: "If T17 : Bust | If S3 : D15 | If S2 : D15", note: "Co-equal route to D8. S17 leaves D8. Accidental T17 busts." }
+  ],
+  "33_1": [{ type: "setup", route: "S1", miss: "If T1 : Leaves 30 | If S20 : Leaves 13", note: "Sets up D16 for next visit." }],
+  "32_3": [{ type: "best", route: "D16", miss: "If S16 : D8 | If S16 → S8 : D4", note: "Premier power-of-two checkout. Inside single 16 leaves D8; inside single 8 leaves D4. Perfectly bifurcates down to D1." }],
+  "32_2": [{ type: "best", route: "D16", miss: "If S16 : D8", note: "Premier parity double. Inside single 16 leaves D8 with remaining dart." }],
+  "32_1": [{ type: "best", route: "D16", miss: "If S16 : Bust (Turn Over)", note: "Direct 1-dart checkout for D16." }],
+  "31_3": [
+    { type: "best", route: "S15 → D8", miss: "If T15 : Bust | If S10 : S5 → D8 | If S2 : S13 → D8", note: "Primary parity route to D8. S15 leaves 16 (two darts at D8). Caution: accidental T15 busts." },
+    { type: "best", route: "S7 → D12", miss: "If T7 : D5 | If S19 : S2 → D5 | If S16 : S5 → D5", note: "Co-equal route to D12. S7 leaves 24 (two darts at D12); accidental T7 leaves 10 (two darts at D5)." }
+  ],
+  "31_2": [
+    { type: "best", route: "S15 → D8", miss: "If T15 : Bust | If S10 : D10 | If S2 : D14", note: "Optimal route to D8. S15 leaves D8. Accidental T15 busts." },
+    { type: "best", route: "S7 → D12", miss: "If T7 : D5 | If S19 : D6 | If S16 : D7", note: "Co-equal route to D12. S7 leaves D12; accidental T7 leaves D5 immediately." }
+  ],
+  "31_1": [{ type: "setup", route: "S15", miss: "If T15 : Bust (Turn Over) | If S7 : Leaves 24", note: "Sets up D8 for next visit. Drift into S7 safely leaves D12." }],
+  "30_3": [
+    { type: "best", route: "D15", miss: "If S15 : S7 → D4 | If S15 : S3 → D6", note: "Direct route to D15. Inside single 15 leaves 15, requiring a setup dart to D4 or D6." },
+    { type: "best", route: "S6 → D12", miss: "If T6 : D6 | If S10 : S4 → D8 | If S13 : S1 → D8", note: "Co-equal parity setup to D12. S6 leaves 24 (two darts at D12); accidental T6 leaves 12 (two darts at D6)." },
+    { type: "alt", route: "S14 → D8", miss: "If T14 : Bust | If S9 : S5 → D8 | If S11 : S3 → D8", note: "Parity setup to D8. S14 leaves 16 (two darts at D8). Caution: accidental T14 busts." }
+  ],
+  "30_2": [
+    { type: "best", route: "D15", miss: "If S15 : S7 (Leaves 8) | If S15 : S3 (Leaves 12)", note: "Direct route to D15. Inside single 15 leaves 15 (requires setup with dart 2)." },
+    { type: "best", route: "S6 → D12", miss: "If T6 : D6 | If S10 : D10 | If S13 : D8", note: "Co-equal setup to D12. S6 leaves D12; accidental T6 leaves D6 immediately." }
+  ],
+  "30_1": [{ type: "best", route: "D15", miss: "If S15 : Bust (Turn Over)", note: "Only 1-dart checkout for 30." }],
+  "29_3": [
+    { type: "best", route: "S13 → D8", miss: "If T13 : Bust | If S6 : S7 → D8 | If S10 : S3 → D8", note: "Primary parity route to D8. S13 leaves 16 (two darts at D8). Caution: accidental T13 busts." },
+    { type: "alt", route: "S17 → D6", miss: "If T17 : Bust | If S3 : S14 → D6 | If S2 : S15 → D6", note: "Alternative route to D6. S17 leaves 12 (two darts at D6)." }
+  ],
+  "29_2": [{ type: "best", route: "S13 → D8", miss: "If T13 : Bust | If S6 : D11 | If S10 : D9", note: "Direct route to D8. S13 leaves D8. Accidental T13 busts." }],
+  "29_1": [{ type: "setup", route: "S13", miss: "If T13 : Bust (Turn Over) | If S6 : Leaves 23", note: "Sets up D8 for next visit." }],
+  "28_3": [
+    { type: "best", route: "D14", miss: "If S14 : S6 → D4 | If S14 : S2 → D6", note: "Direct route to D14. Inside single 14 leaves 14, requiring a setup dart to D4 or D6." },
+    { type: "best", route: "S12 → D8", miss: "If T12 : Bust | If S5 : S7 → D8 | If S9 : S3 → D8", note: "Co-equal parity setup to D8. S12 leaves 16 (two darts at D8). Caution: accidental T12 busts." }
+  ],
+  "28_2": [
+    { type: "best", route: "D14", miss: "If S14 : S6 (Leaves 8) | If S14 : S2 (Leaves 12)", note: "Direct route to D14. Inside single 14 leaves 14 (requires setup with dart 2)." },
+    { type: "alt", route: "S12 → D8", miss: "If T12 : Bust | If S5 : D11 | If S9 : D9", note: "Defensive setup to D8. S12 leaves D8. Accidental T12 busts." }
+  ],
+  "28_1": [{ type: "best", route: "D14", miss: "If S14 : Bust (Turn Over)", note: "Only 1-dart checkout for 28." }],
+  "27_3": [
+    { type: "best", route: "S11 → D8", miss: "If T11 : Bust | If S8 : S3 → D8 | If S14 : S4 → D4", note: "Primary parity route to D8. S11 leaves 16 (two darts at D8). Caution: accidental T11 busts." },
+    { type: "best", route: "S19 → D4", miss: "If T19 : Bust | If S3 : S8 → D8 | If S7 : S4 → D8", note: "Co-equal route to D4. S19 leaves 8 (two darts at D4). Caution: accidental T19 busts." },
+    { type: "alt", route: "S7 → D10", miss: "If T7 : D3 | If S16 : S1 → D5 | If S19 : D4", note: "Bust-safe route to D10. Accidental T7 safely leaves 6 (two darts at D3)." }
+  ],
+  "27_2": [
+    { type: "best", route: "S11 → D8", miss: "If T11 : Bust | If S8 : D9 | If S14 : D6", note: "Direct route to D8. S11 leaves D8. Accidental T11 busts." },
+    { type: "best", route: "S19 → D4", miss: "If T19 : Bust | If S3 : D12 | If S7 : D10", note: "Co-equal route to D4. S19 leaves D4. Accidental T19 busts." },
+    { type: "alt", route: "S7 → D10", miss: "If T7 : D3 | If S16 : D5 | If S19 : D4", note: "Bust-safe alternative. S7 leaves D10; accidental T7 leaves D3 immediately." }
+  ],
+  "27_1": [{ type: "setup", route: "S11", miss: "If T11 : Bust (Turn Over) | If S7 : Leaves 20", note: "Sets up D8 for next visit. Safe drift into S7 leaves D10." }],
+  "26_3": [
+    { type: "best", route: "D13", miss: "If S13 : S5 → D4 | If S13 : S1 → D6", note: "Direct route to D13. Inside single 13 leaves 13, requiring a setup dart to D4 or D6." },
+    { type: "best", route: "S10 → D8", miss: "If T10 : Bust | If S15 : S3 → D4 | If S6 : S2 → D8", note: "Co-equal parity setup to D8. S10 leaves 16 (two darts at D8). Caution: accidental T10 busts." }
+  ],
+  "26_2": [
+    { type: "best", route: "D13", miss: "If S13 : S5 (Leaves 8) | If S13 : S1 (Leaves 12)", note: "Direct route to D13. Inside single 13 leaves 13 (requires setup with dart 2)." },
+    { type: "alt", route: "S10 → D8", miss: "If T10 : Bust | If S15 : D5 | If S6 : D10", note: "Defensive setup to D8. S10 leaves D8. Accidental T10 busts." }
+  ],
+  "26_1": [{ type: "best", route: "D13", miss: "If S13 : Bust (Turn Over)", note: "Only 1-dart checkout for 26." }],
+  "25_3": [
+    { type: "best", route: "S9 → D8", miss: "If T9 : Bust | If S14 : S3 → D4 | If S12 : S5 → D4", note: "Primary parity route to D8. S9 leaves 16 (two darts at D8). Caution: accidental T9 busts." },
+    { type: "best", route: "S17 → D4", miss: "If T17 : Bust | If S3 : S6 → D8 | If S2 : S7 → D8", note: "Co-equal route to D4. S17 leaves 8 (two darts at D4). Caution: accidental T17 busts." },
+    { type: "alt", route: "S1 → D12", miss: "If T1 : D11 | If S20 : D2 | If S18 : D3", note: "Bust-safe alternative to D12. Accidental T1 safely leaves 22 (two darts at D11)." }
+  ],
+  "25_2": [
+    { type: "best", route: "S9 → D8", miss: "If T9 : Bust | If S14 : D5 | If S12 : D6", note: "Direct route to D8. S9 leaves D8. Accidental T9 busts." },
+    { type: "best", route: "S17 → D4", miss: "If T17 : Bust | If S3 : D11 | If S2 : D11", note: "Co-equal route to D4. S17 leaves D4. Accidental T17 busts." },
+    { type: "alt", route: "S1 → D12", miss: "If T1 : D11 | If S20 : D2 | If S18 : D3", note: "Bust-safe alternative. S1 leaves D12; accidental T1 leaves D11 immediately." }
+  ],
+  "25_1": [{ type: "setup", route: "S9", miss: "If T9 : Bust (Turn Over) | If S1 : Leaves 24", note: "Sets up D8 for next visit. Safe drift into S1 leaves D12." }],
+  "24_3": [{ type: "best", route: "D12", miss: "If S12 : D6 | If S12 → S6 : D3", note: "Direct power-of-two route. Inside single 12 leaves D6; inside single 6 leaves D3." }],
+  "24_2": [{ type: "best", route: "D12", miss: "If S12 : D6", note: "Direct route to D12. Inside single 12 leaves D6 with remaining dart." }],
+  "24_1": [{ type: "best", route: "D12", miss: "If S12 : Bust (Turn Over)", note: "Direct 1-dart checkout for D12." }],
+  "23_3": [
+    { type: "best", route: "S7 → D8", miss: "If T7 : D1 | If S19 : D2 | If S16 : S3 → D2", note: "Bust-safe parity route to D8. S7 leaves 16 (two darts at D8); accidental T7 leaves 2 (two darts at D1)." },
+    { type: "best", route: "S15 → D4", miss: "If T15 : Bust | If S10 : S5 → D4 | If S2 : S5 → D8", note: "Co-equal route to D4. S15 leaves 8 (two darts at D4). Caution: accidental T15 busts." }
+  ],
+  "23_2": [
+    { type: "best", route: "S7 → D8", miss: "If T7 : D1 | If S19 : D2 | If S16 : D3", note: "Bust-safe route to D8. S7 leaves D8; accidental T7 leaves D1 immediately." },
+    { type: "best", route: "S15 → D4", miss: "If T15 : Bust | If S10 : D6 | If S2 : D10", note: "Co-equal route to D4. S15 leaves D4. Accidental T15 busts." }
+  ],
+  "23_1": [{ type: "setup", route: "S7", miss: "If T7 : Leaves 2 | If S19 : Leaves 4", note: "Sets up D8 for next visit. Accidental T7 safely leaves D1." }],
+  "22_3": [
+    { type: "best", route: "D11", miss: "If S11 : S3 → D4 | If S11 : S1 → D5", note: "Direct route to D11. Inside single 11 leaves 11, requiring a setup dart to D4 or D5." },
+    { type: "best", route: "S6 → D8", miss: "If T6 : D2 | If S10 : S2 → D5 | If S13 : S1 → D4", note: "Co-equal parity setup to D8. S6 leaves 16 (two darts at D8); accidental T6 leaves 4 (two darts at D2)." }
+  ],
+  "22_2": [
+    { type: "best", route: "D11", miss: "If S11 : S3 (Leaves 8) | If S11 : S1 (Leaves 10)", note: "Direct route to D11. Inside single 11 leaves 11 (requires setup with dart 2)." },
+    { type: "alt", route: "S6 → D8", miss: "If T6 : D2 | If S10 : D6 | If S13 : D4", note: "Defensive setup to D8. S6 leaves D8; accidental T6 leaves D2 immediately." }
+  ],
+  "22_1": [{ type: "best", route: "D11", miss: "If S11 : Bust (Turn Over)", note: "Only 1-dart checkout for 22." }],
+  "21_3": [
+    { type: "best", route: "S5 → D8", miss: "If T5 : D3 | If S20 : D0 | If S1 : S4 → D8", note: "Bust-safe parity route to D8. S5 leaves 16 (two darts at D8); accidental T5 leaves 6 (two darts at D3)." },
+    { type: "best", route: "S13 → D4", miss: "If T13 : Bust | If S6 : S7 → D4 | If S10 : S4 → D2", note: "Co-equal route to D4. S13 leaves 8 (two darts at D4). Caution: accidental T13 busts." }
+  ],
+  "21_2": [
+    { type: "best", route: "S5 → D8", miss: "If T5 : D3 | If S20 : Bust | If S1 : D10", note: "Bust-safe route to D8. S5 leaves D8; accidental T5 leaves D3 immediately." },
+    { type: "best", route: "S13 → D4", miss: "If T13 : Bust | If S6 : D7 | If S10 : D5", note: "Co-equal route to D4. S13 leaves D4. Accidental T13 busts." }
+  ],
+  "21_1": [{ type: "setup", route: "S5", miss: "If T5 : Leaves 6 | If S1 : Leaves 20", note: "Sets up D8 for next visit. Accidental T5 safely leaves D3." }],
+  "20_3": [{ type: "best", route: "D10", miss: "If S10 : D5 | If S10 → S5 : Bust", note: "Standard route to D10. Inside single 10 leaves D5 with two darts in hand." }],
+  "20_2": [{ type: "best", route: "D10", miss: "If S10 : D5", note: "Direct route to D10. Inside single 10 leaves D5 with remaining dart." }],
+  "20_1": [{ type: "best", route: "D10", miss: "If S10 : Bust (Turn Over)", note: "Direct 1-dart checkout for D10." }],
+  "19_3": [
+    { type: "best", route: "S3 → D8", miss: "If T3 : D5 | If S19 : Bust | If S17 : D1", note: "Bust-safe parity route to D8. S3 leaves 16 (two darts at D8); accidental T3 leaves 10 (two darts at D5)." },
+    { type: "best", route: "S11 → D4", miss: "If T11 : Bust | If S8 : S3 → D4 | If S14 : Bust", note: "Co-equal route to D4. S11 leaves 8 (two darts at D4). Caution: accidental T11 busts." }
+  ],
+  "19_2": [
+    { type: "best", route: "S3 → D8", miss: "If T3 : D5 | If S19 : Bust | If S17 : D1", note: "Bust-safe route to D8. S3 leaves D8; accidental T3 leaves D5 immediately." },
+    { type: "best", route: "S11 → D4", miss: "If T11 : Bust | If S8 : D5 | If S14 : Bust", note: "Co-equal route to D4. S11 leaves D4. Accidental T11 busts." }
+  ],
+  "19_1": [{ type: "setup", route: "S3", miss: "If T3 : Leaves 10 | If S17 : Leaves 2", note: "Sets up D8 for next visit. Accidental T3 safely leaves D5." }],
+  "18_3": [
+    { type: "best", route: "D9", miss: "If S9 : S1 → D4 | If S9 : S5 → D2", note: "Direct route to D9. Inside single 9 leaves 9, requiring a setup dart to D4 or D2." },
+    { type: "best", route: "S2 → D8", miss: "If T2 : D6 | If S17 : D0 | If S15 : S1 → D1", note: "Co-equal parity setup to D8. S2 leaves 16 (two darts at D8); accidental T2 leaves 12 (two darts at D6)." }
+  ],
+  "18_2": [
+    { type: "best", route: "D9", miss: "If S9 : S1 (Leaves 8) | If S9 : S5 (Leaves 4)", note: "Direct route to D9. Inside single 9 leaves 9 (requires setup with dart 2)." },
+    { type: "alt", route: "S2 → D8", miss: "If T2 : D6 | If S17 : Bust | If S15 : D1", note: "Defensive setup to D8. S2 leaves D8; accidental T2 leaves D6 immediately." }
+  ],
+  "18_1": [{ type: "best", route: "D9", miss: "If S9 : Bust (Turn Over)", note: "Only 1-dart checkout for 18." }],
+  "17_3": [
+    { type: "best", route: "S1 → D8", miss: "If T1 : D7 | If S20 : Bust | If S18 : Bust", note: "Bust-safe parity route to D8. S1 leaves 16 (two darts at D8); accidental T1 leaves 14 (two darts at D7)." },
+    { type: "best", route: "S9 → D4", miss: "If T9 : Bust | If S14 : Bust | If S12 : S1 → D2", note: "Co-equal route to D4. S9 leaves 8 (two darts at D4). Caution: accidental T9 busts." }
+  ],
+  "17_2": [
+    { type: "best", route: "S1 → D8", miss: "If T1 : D7 | If S20 : Bust | If S18 : Bust", note: "Bust-safe route to D8. S1 leaves D8; accidental T1 leaves D7 immediately." },
+    { type: "best", route: "S9 → D4", miss: "If T9 : Bust | If S14 : Bust | If S12 : D2", note: "Co-equal route to D4. S9 leaves D4. Accidental T9 busts." }
+  ],
+  "17_1": [{ type: "setup", route: "S1", miss: "If T1 : Leaves 14 | If S18 : Bust (Turn Over)", note: "Sets up D8 for next visit. Accidental T1 safely leaves D7." }],
+  "16_3": [{ type: "best", route: "D8", miss: "If S8 : D4 | If S8 → S4 : D2", note: "Premier power-of-two route. Inside single 8 leaves D4; inside single 4 leaves D2." }],
+  "16_2": [{ type: "best", route: "D8", miss: "If S8 : D4", note: "Direct route to D8. Inside single 8 leaves D4 with remaining dart." }],
+  "16_1": [{ type: "best", route: "D8", miss: "If S8 : Bust (Turn Over)", note: "Direct 1-dart checkout for D8." }],
+  "15_3": [
+    { type: "best", route: "S7 → D4", miss: "If T7 : Bust | If S19 : Bust | If S16 : Bust", note: "Primary parity route to D4. S7 leaves 8 (two darts at D4). Caution: accidental T7 busts." },
+    { type: "alt", route: "S3 → D6", miss: "If T3 : D3 | If S19 : Bust | If S17 : Bust", note: "Bust-safe alternative to D6. S3 leaves 12; accidental T3 safely leaves 6 (two darts at D3)." }
+  ],
+  "15_2": [
+    { type: "best", route: "S7 → D4", miss: "If T7 : Bust | If S19 : Bust | If S16 : Bust", note: "Direct parity route to D4. S7 leaves D4. Accidental T7 busts." },
+    { type: "alt", route: "S3 → D6", miss: "If T3 : D3 | If S19 : Bust | If S17 : Bust", note: "Bust-safe alternative. S3 leaves D6; accidental T3 leaves D3 immediately." }
+  ],
+  "15_1": [{ type: "setup", route: "S7", miss: "If T7 : Bust (Turn Over) | If S3 : Leaves 12", note: "Sets up D4 for next visit." }],
+  "14_3": [
+    { type: "best", route: "D7", miss: "If S7 : S3 → D2 | If S7 : S1 → D3", note: "Direct route to D7. Inside single 7 leaves 7, requiring a setup dart to D2 or D3." },
+    { type: "best", route: "S6 → D4", miss: "If T6 : Bust | If S10 : D2 | If S13 : D0", note: "Co-equal parity setup to D4. S6 leaves 8 (two darts at D4). Caution: accidental T6 busts." }
+  ],
+  "14_2": [
+    { type: "best", route: "D7", miss: "If S7 : S3 (Leaves 4) | If S7 : S1 (Leaves 6)", note: "Direct route to D7. Inside single 7 leaves 7 (requires setup with dart 2)." },
+    { type: "alt", route: "S6 → D4", miss: "If T6 : Bust | If S10 : D2 | If S13 : Bust", note: "Defensive setup to D4. S6 leaves D4. Accidental T6 busts." }
+  ],
+  "14_1": [{ type: "best", route: "D7", miss: "If S7 : Bust (Turn Over)", note: "Only 1-dart checkout for 14." }],
+  "13_3": [{ type: "best", route: "S5 → D4", miss: "If T5 : Bust | If S20 : Bust | If S1 : S4 → D4", note: "Primary parity route to D4. S5 leaves 8 (two darts at D4). Caution: accidental T5 busts." }],
+  "13_2": [{ type: "best", route: "S5 → D4", miss: "If T5 : Bust | If S20 : Bust | If S1 : D6", note: "Direct route to D4. S5 leaves D4. Accidental T5 busts." }],
+  "13_1": [{ type: "setup", route: "S5", miss: "If T5 : Bust (Turn Over) | If S1 : Leaves 12", note: "Sets up D4 for next visit." }],
+  "12_3": [
+    { type: "best", route: "D6", miss: "If S6 : D3 | If S6 → S3 : Bust", note: "Direct route to D6. Inside single 6 leaves D3 with two darts in hand." },
+    { type: "best", route: "S4 → D4", miss: "If T4 : Bust | If S18 : Bust | If S13 : Bust", note: "Co-equal parity setup to D4. S4 leaves 8 (two darts at D4). Caution: accidental T4 busts." }
+  ],
+  "12_2": [
+    { type: "best", route: "D6", miss: "If S6 : D3", note: "Direct route to D6. Inside single 6 leaves D3 with remaining dart." },
+    { type: "alt", route: "S4 → D4", miss: "If T4 : Bust | If S18 : Bust | If S13 : Bust", note: "Defensive setup to D4. S4 leaves D4. Accidental T4 busts." }
+  ],
+  "12_1": [{ type: "best", route: "D6", miss: "If S6 : Bust (Turn Over)", note: "Direct 1-dart checkout for D6." }],
+  "11_3": [{ type: "best", route: "S3 → D4", miss: "If T3 : D1 | If S19 : Bust | If S17 : Bust", note: "Bust-safe parity route to D4. S3 leaves 8 (two darts at D4); accidental T3 safely leaves 2 (two darts at D1)." }],
+  "11_2": [{ type: "best", route: "S3 → D4", miss: "If T3 : D1 | If S19 : Bust | If S17 : Bust", note: "Bust-safe route to D4. S3 leaves D4; accidental T3 leaves D1 immediately." }],
+  "11_1": [{ type: "setup", route: "S3", miss: "If T3 : Leaves 2 | If S19 : Bust (Turn Over)", note: "Sets up D4 for next visit. Accidental T3 leaves D1." }],
+  "10_3": [
+    { type: "best", route: "D5", miss: "If S5 : S1 → D2 | If S5 : S3 → D1", note: "Direct route to D5. Inside single 5 leaves 5, requiring a setup dart to D2 or D1." },
+    { type: "best", route: "S2 → D4", miss: "If T2 : D2 | If S17 : Bust | If S15 : Bust", note: "Co-equal parity setup to D4. S2 leaves 8 (two darts at D4); accidental T2 leaves 4 (two darts at D2)." }
+  ],
+  "10_2": [
+    { type: "best", route: "D5", miss: "If S5 : S1 (Leaves 4) | If S5 : S3 (Leaves 2)", note: "Direct route to D5. Inside single 5 leaves 5 (requires setup with dart 2)." },
+    { type: "alt", route: "S2 → D4", miss: "If T2 : D2 | If S17 : Bust | If S15 : Bust", note: "Defensive setup to D4. S2 leaves D4; accidental T2 leaves D2 immediately." }
+  ],
+  "10_1": [{ type: "best", route: "D5", miss: "If S5 : Bust (Turn Over)", note: "Only 1-dart checkout for 10." }],
+  "9_3": [{ type: "best", route: "S1 → D4", miss: "If T1 : D3 | If S20 : Bust | If S18 : Bust", note: "Bust-safe parity route to D4. S1 leaves 8 (two darts at D4); accidental T1 safely leaves 6 (two darts at D3)." }],
+  "9_2": [{ type: "best", route: "S1 → D4", miss: "If T1 : D3 | If S20 : Bust | If S18 : Bust", note: "Bust-safe route to D4. S1 leaves D4; accidental T1 leaves D3 immediately." }],
+  "9_1": [{ type: "setup", route: "S1", miss: "If T1 : Leaves 6 | If S20 : Bust (Turn Over)", note: "Sets up D4 for next visit. Accidental T1 leaves D3." }],
+  "8_3": [{ type: "best", route: "D4", miss: "If S4 : D2 | If S4 → S2 : D1", note: "Direct power-of-two route. Inside single 4 leaves D2; inside single 2 leaves D1." }],
+  "8_2": [{ type: "best", route: "D4", miss: "If S4 : D2", note: "Direct route to D4. Inside single 4 leaves D2 with remaining dart." }],
+  "8_1": [{ type: "best", route: "D4", miss: "If S4 : Bust (Turn Over)", note: "Direct 1-dart checkout for D4." }],
+  "7_3": [{ type: "best", route: "S3 → D2", miss: "If T3 : Bust | If S19 : Bust | If S17 : Bust", note: "Primary parity route to D2. S3 leaves 4 (two darts at D2). Caution: accidental T3 busts." }],
+  "7_2": [{ type: "best", route: "S3 → D2", miss: "If T3 : Bust | If S19 : Bust | If S17 : Bust", note: "Direct route to D2. S3 leaves D2. Accidental T3 busts." }],
+  "7_1": [{ type: "setup", route: "S3", miss: "If T3 : Bust (Turn Over) | If S19 : Bust (Turn Over)", note: "Sets up D2 for next visit." }],
+  "6_3": [
+    { type: "best", route: "D3", miss: "If S3 : S1 → D1 | If S3 → S1 : Bust", note: "Direct route to D3. Inside single 3 leaves 3, requiring S1 to D1." },
+    { type: "best", route: "S2 → D2", miss: "If T2 : Bust | If S17 : Bust | If S15 : Bust", note: "Co-equal parity setup to D2. S2 leaves 4 (two darts at D2). Caution: accidental T2 busts." }
+  ],
+  "6_2": [
+    { type: "best", route: "D3", miss: "If S3 : S1 (Leaves 2)", note: "Direct route to D3. Inside single 3 leaves 3 (requires S1 with dart 2)." },
+    { type: "alt", route: "S2 → D2", miss: "If T2 : Bust | If S17 : Bust | If S15 : Bust", note: "Defensive setup to D2. S2 leaves D2. Accidental T2 busts." }
+  ],
+  "6_1": [{ type: "best", route: "D3", miss: "If S3 : Bust (Turn Over)", note: "Only 1-dart checkout for 6." }],
+  "5_3": [{ type: "best", route: "S1 → D2", miss: "If T1 : D1 | If S20 : Bust | If S18 : Bust", note: "Bust-safe parity route to D2. S1 leaves 4 (two darts at D2); accidental T1 safely leaves 2 (two darts at D1)." }],
+  "5_2": [{ type: "best", route: "S1 → D2", miss: "If T1 : D1 | If S20 : Bust | If S18 : Bust", note: "Bust-safe route to D2. S1 leaves D2; accidental T1 leaves D1 immediately." }],
+  "5_1": [{ type: "setup", route: "S1", miss: "If T1 : Leaves 2 | If S20 : Bust (Turn Over)", note: "Sets up D2 for next visit. Accidental T1 safely leaves D1." }],
+  "4_3": [{ type: "best", route: "D2", miss: "If S2 : D1 | If S2 → S1 : Bust", note: "Direct power-of-two route. Inside single 2 leaves D1." }],
+  "4_2": [{ type: "best", route: "D2", miss: "If S2 : D1", note: "Direct route to D2. Inside single 2 leaves D1 with remaining dart." }],
+  "4_1": [{ type: "best", route: "D2", miss: "If S2 : Bust (Turn Over)", note: "Direct 1-dart checkout for D2." }],
+  "3_3": [{ type: "best", route: "S1 → D1", miss: "If T1 : Bust | If S1 → Wire Miss : D1", note: "Only legal checkout route. S1 leaves 2 (two darts at D1/Madhouse)." }],
+  "3_2": [{ type: "best", route: "S1 → D1", miss: "If T1 : Bust | If S20 : Bust", note: "Only legal checkout route. S1 leaves D1 with remaining dart." }],
+  "3_1": [{ type: "setup", route: "S1", miss: "If T1 : Bust (Turn Over) | If S20 : Bust (Turn Over)", note: "Sets up D1 for next visit. Accidental T1 busts." }],
+  "2_3": [{ type: "best", route: "D1", miss: "If S1 : Bust (Turn Over)", note: "The Madhouse. Any inside single busts the turn." }],
+  "2_2": [{ type: "best", route: "D1", miss: "If S1 : Bust (Turn Over)", note: "The Madhouse. Any inside single busts the turn." }],
+  "2_1": [{ type: "best", route: "D1", miss: "If S1 : Bust (Turn Over)", note: "The Madhouse. Final dart direct attempt." }]
+};
+
+// Initialize Application
+setDarts(3);
+</script>
+</body>
+</html>

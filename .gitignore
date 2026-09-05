@@ -1,0 +1,8 @@
+# Proprietary Generation & Prompt Source Docs
+dart-advisor-db-prompt.md
+*prompt*.md
+
+# System Junk
+Thumbs.db
+.DS_Store
+desktop.ini
