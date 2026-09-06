@@ -9,8 +9,18 @@
 ======================================================================== -->
 <html lang="en">
 <head>
+  <!-- Mobile PWA & Fullscreen Capability -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#121212">
+  <link rel="manifest" href="./manifest.json">
+
+  <!-- iOS Safari Fullscreen & Standalone Controls -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dart Advisor">
+  <link rel="apple-touch-icon" href="./dartboard-192.png">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Dart Out &amp; Setup Advisor | Hybrid Parity Engine</title>
   <style>
     :root {
@@ -125,6 +135,15 @@
     .modal-body { padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem; line-height: 1.5; font-size: 0.9rem; }
     .modal-body h3 { margin: 0 0 0.5rem 0; font-size: 1rem; color: var(--accent); font-weight: 600; }
     .modal-body ul { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    /* Version indicator */
+    .version-badge {
+      font-size: 0.7rem;
+      font-family: monospace;
+      color: var(--text-muted, #777);
+      letter-spacing: 0.05em;
+      text-align: center;
+      user-select: none;
+    }
   </style>
 </head>
 <body>
@@ -151,7 +170,7 @@
 
   <!-- Score Display with Integrated Voice Input Action -->
   <div class="panel">
-    <span class="section-label">Current Score (2 – 501)</span>
+    <span class="section-label">Current Score (2 – 170)</span>
     <div class="display-row">
       <div class="score-display" id="scoreDisplay">—</div>
       <button id="btnVoice" class="mic-btn" type="button" title="Voice Input (e.g. '2 darts, 76')">
@@ -172,6 +191,7 @@
     <span class="utility-link" onclick="openAddModal()">+ Add Custom Route for this Score</span>
     <span class="utility-link" onclick="resetToDefaults()">Reset Defaults</span>
   </div>
+  <div class="version-badge">v1.0.0</div>
 </div>
 
 <!-- Accessible About Modal -->
@@ -339,7 +359,7 @@ function parseDartsVoice(text) {
   else if (text.includes("2") || text.includes("two")) dCount = 2;
   else if (text.includes("1") || text.includes("one")) dCount = 1;
 
-  // Extract score (between 2 and 501, or verbal "tops" / "bull")
+  // Extract score (between 2 and 170, or verbal "tops" / "bull")
   let scoreVal = null;
   if (text.includes("tops")) scoreVal = 40;
   else if (text.includes("bullseye") || text.includes("bull")) scoreVal = 50;
@@ -545,7 +565,7 @@ function renderDisplay() {
   actionBar.style.display = 'flex';
 
   const score = parseInt(currentScore, 10);
-  if (score < 2 || score > 501) { 
+  if (score < 2 || score > 170) { 
     container.innerHTML = `<div class="out-card avoid"><span class="badge avoid">Out of Range</span><div class="route-line">Invalid Score</div></div>`; 
     return; 
   }
@@ -637,6 +657,14 @@ function deleteCurrentRoute() {
   closeFormModal(); renderDisplay();
 }
 function resetToDefaults() { if (confirm("Reset to factory defaults?")) { localStorage.removeItem("dart_tactical_hybrid_v3"); renderDisplay(); } }
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch((err) => {
+      console.warn('ServiceWorker registration failed:', err);
+    });
+  });
+}
 
 /* =========================================================================
    6. MASTER DICTIONARY DATASTORE (170 TO 2) - AUDITED MODERN BASELINE
