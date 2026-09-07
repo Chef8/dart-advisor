@@ -22,6 +22,17 @@
   <link rel="apple-touch-icon" href="./dartboard-192.png">
   <meta charset="UTF-8">
   <title>Dart Out &amp; Setup Advisor | Hybrid Parity Engine</title>
+
+  <!-- APP VERSION CONTROL -->
+  <script>
+  // Update this string to change the version in the About modal
+  const APP_VERSION = "v1.0.1";
+  
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("app-version").textContent = APP_VERSION;
+  });
+  </script>
+
   <style>
     :root {
       --bg: #0d1117; --panel: #161b22; --card: #21262d; --accent: #58a6ff; --border: #30363d;
@@ -191,7 +202,7 @@
     <span class="utility-link" onclick="openAddModal()">+ Add Custom Route for this Score</span>
     <span class="utility-link" onclick="resetToDefaults()">Reset Defaults</span>
   </div>
-  <div class="version-badge">v1.0.0</div>
+  <div id="app-version" class="version-badge"></div>
 </div>
 
 <!-- Accessible About Modal -->
