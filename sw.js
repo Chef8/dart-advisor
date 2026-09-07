@@ -3,8 +3,8 @@ const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+  './dartboard-192.png',
+  './dartboard-512.png'
 ];
 
 // Cache all core files immediately upon install
