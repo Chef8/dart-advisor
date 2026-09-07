@@ -26,7 +26,7 @@
   <!-- APP VERSION CONTROL -->
   <script>
   // Update this string to change the version in the About modal
-  const APP_VERSION = "v1.0.1";
+  const APP_VERSION = "v1.0.2";
   
   document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("app-version").textContent = APP_VERSION;
@@ -345,6 +345,9 @@ if (SpeechRec) {
   };
 
   recognition.onresult = (event) => {
+    // Safari Bug Fix: Force the microphone to close immediately
+    try { recognition.stop(); } catch(e) {}
+    
     const transcript = event.results[0][0].transcript.toLowerCase();
     parseDartsVoice(transcript);
   };
@@ -364,18 +367,25 @@ if (SpeechRec) {
 }
 
 function parseDartsVoice(text) {
-  // Extract darts count (e.g. "2 darts", "with 3 darts", "one dart")
+  // 1. Extract darts count safely using word boundaries (avoids triggering on scores like "72")
   let dCount = null;
-  if (text.includes("3") || text.includes("three")) dCount = 3;
-  else if (text.includes("2") || text.includes("two")) dCount = 2;
-  else if (text.includes("1") || text.includes("one")) dCount = 1;
+  const dartMatch = text.match(/(?:with\s+)?(3|2|1|three|two|one)\s*darts?/i);
+  if (dartMatch) {
+    const dStr = dartMatch[1];
+    if (dStr === '3' || dStr === 'three') dCount = 3;
+    else if (dStr === '2' || dStr === 'two') dCount = 2;
+    else if (dStr === '1' || dStr === 'one') dCount = 1;
+  }
 
-  // Extract score (between 2 and 170, or verbal "tops" / "bull")
+  // 2. Remove the dart count phrase entirely so the digits aren't mistaken for the target score
+  let remainingText = text.replace(/(?:with\s+)?(3|2|1|three|two|one)\s*darts?/i, '').trim();
+
+  // 3. Extract the score from the remaining text
   let scoreVal = null;
-  if (text.includes("tops")) scoreVal = 40;
-  else if (text.includes("bullseye") || text.includes("bull")) scoreVal = 50;
+  if (remainingText.includes("tops")) scoreVal = 40;
+  else if (remainingText.includes("bullseye") || remainingText.includes("bull")) scoreVal = 50;
   else {
-    const match = text.match(/\b([2-9]|[1-9][0-9]|[1-4][0-9]{2}|50[0-1])\b/);
+    const match = remainingText.match(/\b([2-9]|[1-9][0-9]|[1-4][0-9]{2}|50[0-1])\b/);
     if (match) scoreVal = parseInt(match[1], 10);
   }
 
