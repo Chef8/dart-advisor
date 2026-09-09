@@ -1,4 +1,4 @@
-# Dart Advisor | Modern Parity & Recovery Engine
+# Dart Advisor | Match Play Tactics
 
 An offline-first, voice-activated checkout and tactical setup calculator engineered for steel-tip and soft-tip darts. Built on modern PDC tournament match telemetry, expected-value (EV) conversion models, a $2^n$ parity hierarchy, and kinetic throwing-plane continuity.
 
@@ -11,6 +11,7 @@ Traditional checkout charts treat the dartboard as a flat arithmetic grid and as
 Standard pub charts leave players stranded when an aimed treble catches a fat single. Dart Advisor maps the board dynamically around **Fat-Bed Survivability** and the **Single-Miss Margin**:
 - **Discrete Dart Inventory:** Select whether you have 3, 2, or 1 dart in hand. Options adapt instantly to rescue the turn if your first dart drifts.
 - **Parity Optimization ($2^n$ Hierarchy):** When opponent pressure is low, routes prioritize primary tier doubles that degrade cleanly on an inside wire miss (D16, Tops, D8, D12, D4). Missing inside preserves setup equity without burning extra darts to adjust.
+- **The Tactical Tie-Breaker:** When high-pressure survivability clashes with parity, parity wins. If utilizing a Guaranteed Bull Pivot on an even number (e.g., 64) forces the resulting treble onto a dead-end odd double like D11, the engine abandons the bailout and routes to a treble that secures an elite even double.
 - **Accidental-Treble Bust Protection:** On single-dart setups (scores 41–59), the engine strictly routes to fat single beds where an accidental treble cannot bust your turn.
 - **Kinetic Corridors:** Target sequences minimize lateral shoulder and elbow shifts across distant board quadrants, keeping your arm swing locked in natural vertical channels (e.g., the Top Corridor: 20, 1, 5, 12, 18).
 
@@ -19,6 +20,7 @@ Standard pub charts leave players stranded when an aimed treble catches a fat si
 ## Route Legend
 
 - **Best (Green):** Highest conversion EV based on fat-bed survivability, guaranteed double equity, and co-equal tournament baselines (e.g., Tops-favoring vs. D16-favoring branches).
+- **Survival:** Gritty, high-pressure bailout routes that guarantee a dart at the Bullseye on a single miss, sacrificing ideal setup math just to keep your turn alive when the opponent is on a finish.
 - **Alt (Amber):** Valid alternative corridor or rhythm preferences, wire-blocking pivots, and calculated percentage plays.
 - **Avoid (Red):** Outdated legacy match traps that strand the visit with 0% checkout probability on a single miss.
 - **Setup (Purple):** Deliberate positioning darts engineered to leave premier parity finishes on your next visit when a checkout is mathematically impossible.
