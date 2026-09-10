@@ -26,7 +26,7 @@
   <!-- APP VERSION CONTROL -->
   <script>
   // Update this string to change the version in the About modal
-  const APP_VERSION = "v1.0.3";
+  const APP_VERSION = "v2.0.0";
   
   document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("app-version").textContent = APP_VERSION;
@@ -72,10 +72,30 @@
     .dart-btn.active { background: #1f6feb; border-color: var(--accent); color: #fff; }
 
     /* Display Row with Integrated Voice Action */
-    .display-row { 
-      display: flex; justify-content: space-between; align-items: center; 
-      background: #090d13; border: 1px solid var(--border); border-radius: 6px; 
-      padding: 6px 12px; margin-bottom: 8px; 
+    <div class="display-row">
+      <div class="score-wrapper">
+        <div class="math-history" id="mathHistory"></div>
+        <div class="main-score" id="mainScore">—</div>
+      </div>
+      <button id="btnVoice" class="mic-btn" type="button" title="Voice Input (e.g. '2 darts, 76')">
+        <span id="micIcon">🎙</span> <span id="micLabel">Voice</span>
+      </button>
+    </div>
+    .score-wrapper { display: flex; flex-direction: column; justify-content: center; }
+    .math-history { 
+      font-size: 0.85rem; 
+      color: var(--text-muted); 
+      font-weight: 600; 
+      min-height: 16px; /* Prevents layout shifting */
+      margin-bottom: 2px; 
+      letter-spacing: 0.05em;
+    }
+    .main-score { 
+      font-size: 2.2rem; 
+      font-weight: 800; 
+      font-variant-numeric: tabular-nums; 
+      color: #fff; 
+      line-height: 1; 
     }
     .score-display { font-size: 2.2rem; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff; }
     .mic-btn {
@@ -94,10 +114,27 @@
       100% { box-shadow: 0 0 0 0 rgba(218, 54, 51, 0); }
     }
 
-    /* Keypad */
-    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-    .keypad button { background: var(--card); border: 1px solid var(--border); color: var(--text); font-size: 1.25rem; font-weight: 600; padding: 10px 0; border-radius: 6px; cursor: pointer; }
-    .keypad button:active { background: #30363d; }
+    /* Keypad Grid (Update existing) */
+    .keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 6px; /* Adds the required gap above the 7, 8, 9 row */}
+    /* Base styling to unify the 4x4 keypad grid */
+    .keypad button {
+      height: 42px; /* Meets in the middle for a perfectly balanced tap target */
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background-color: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0;
+    }
+    /* Special Key Styling (Add new) */
+    .key.operator { background-color: var(--card); color: var(--alt); font-weight: 800; }
+    .key.util { background-color: #30363d; color: var(--text-muted); }
+    .key.enter { background-color: var(--best); color: #fff; font-size: 1.5rem; font-weight: 800; }
+    .key.enter:active { background-color: #2ea043; }
 
     /* Cards */
     #resultsContainer { display: flex; flex-direction: column; gap: 8px; }
@@ -157,6 +194,41 @@
       text-align: center;
       user-select: none;
     }
+    .share-section {
+      text-align: center;
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background-color: #1e1e1e; /* Adjust to match your modal's card background */
+      border-radius: 8px;
+      border: 1px solid #333;
+    }
+
+    .share-section h3 {
+      font-size: 1.1rem;
+      margin: 0 0 0.75rem 0;
+      color: #ffffff;
+    }
+
+    .qr-code {
+      width: 150px;
+      height: 150px;
+      margin: 0 auto;
+      border: 4px solid #ffffff; /* Forces a white margin so cameras can easily lock on */
+      border-radius: 4px;
+      display: block;
+      user-select: none;
+    }
+
+    .ios-instruction {
+      font-size: 0.85rem;
+      color: #cccccc;
+      line-height: 1.4;
+      margin: 0.75rem 0 0 0;
+    }
+
+    .ios-instruction strong {
+      color: #ffaa00; /* Uses an amber/gold accent to draw the eye immediately */
+    }
   </style>
 </head>
 <body>
@@ -181,31 +253,55 @@
     </div>
   </div>
 
-  <!-- Score Display with Integrated Voice Input Action -->
-  <div class="panel">
-    <span class="section-label">Current Score (2 – 170)</span>
-    <div class="display-row">
-      <div class="score-display" id="scoreDisplay">—</div>
-      <button id="btnVoice" class="mic-btn" type="button" title="Voice Input (e.g. '2 darts, 76')">
+<!-- Score Display with Integrated Voice Input Action -->
+<div class="panel">
+  <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+    <span class="section-label" style="margin-bottom: 0;">Current Score (2 – 170)</span>
+    <div style="display: flex; gap: 6px;">
+      <button id="btnVoice" class="mic-btn header-mic" type="button" title="Voice Input (e.g. '2 darts, 76')">
         <span id="micIcon">🎙</span> <span id="micLabel">Voice</span>
       </button>
-    </div>
-    <div class="keypad">
-      <button onclick="pressNum('1')">1</button><button onclick="pressNum('2')">2</button><button onclick="pressNum('3')">3</button>
-      <button onclick="pressNum('4')">4</button><button onclick="pressNum('5')">5</button><button onclick="pressNum('6')">6</button>
-      <button onclick="pressNum('7')">7</button><button onclick="pressNum('8')">8</button><button onclick="pressNum('9')">9</button>
-      <button onclick="backspace()">⌫</button><button onclick="pressNum('0')">0</button><button onclick="clearScore()">C</button>
+      <button id="btnUndo" class="mic-btn header-mic" type="button" title="Undo Last Throw" onclick="undoScore()" >↶ Undo</button>
     </div>
   </div>
-
-  <div id="resultsContainer"></div>
-
-  <div class="action-bar" id="actionBar" style="display:none;">
-    <span class="utility-link" onclick="openAddModal()">+ Add Custom Route for this Score</span>
-    <span class="utility-link" onclick="resetToDefaults()">Reset Defaults</span>
+  
+  <div class="display-row" style="display: flex; justify-content: center; align-items: center; background: #090d13; border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 10px;">
+    <div class="score-wrapper" style="display: flex; flex-direction: column; align-items: center;">
+      <div class="math-history" id="mathHistory"></div>
+      <div class="main-score" id="mainScore">—</div>
+    </div>
   </div>
-  <div id="app-version" class="version-badge"></div>
+  
+  <div class="keypad">
+    <button onclick="pressNum('7')">7</button>
+    <button onclick="pressNum('8')">8</button>
+    <button onclick="pressNum('9')">9</button>
+    <button class="key operator" onclick="pressOp('-')">-</button>
+
+    <button onclick="pressNum('4')">4</button>
+    <button onclick="pressNum('5')">5</button>
+    <button onclick="pressNum('6')">6</button>
+    <button class="key operator" title="Multiplier (e.g., 20 then T)" onclick="pressTreble()">T</button>
+
+    <button onclick="pressNum('1')">1</button>
+    <button onclick="pressNum('2')">2</button>
+    <button onclick="pressNum('3')">3</button>
+    <button class="key operator" onclick="pressDouble()">D</button>
+
+    <button class="key util" onclick="clearScore()">C</button>
+    <button onclick="pressNum('0')">0</button>
+    <button class="key util" onclick="backspace()">⌫</button>
+    <button class="key enter" onclick="commitScore()">⏎</button>
+  </div>
 </div>
+
+<div id="resultsContainer"></div>
+
+<div class="action-bar" id="actionBar" style="display:none;">
+  <span class="utility-link" onclick="openAddModal()">+ Add Custom Route for this Score</span>
+  <span class="utility-link" onclick="resetToDefaults()">Reset Defaults</span>
+</div>
+<div id="app-version" class="version-badge"></div>
 
 <!-- Accessible About Modal -->
 <div id="about-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="about-title" hidden>
@@ -250,6 +346,21 @@
     </section>
 
     <section>
+      <h3>How to Use & App Mechanics</h3>
+      <ul>
+        <li>
+          <strong>Smart Keypad:</strong> To deduct a throw, simply press a multiplier followed by the number. Pressing <strong>T</strong> then <strong>20</strong> automatically builds the equation (`- T20`), calculates the deduction, and drops your dart count.
+        </li>
+        <li>
+          <strong>Continuous Voice Play:</strong> Tap <strong>🎙 Voice</strong> and say a starting score (e.g., "82 with 3 darts"). Once a score is active, just speak your throw (e.g., "Trip 20" or "Bullseye"). The app automatically deducts the value and reads your next optimal route aloud.
+        </li>
+        <li>
+          <strong>Undo & Math History:</strong> The display splits to show your live math trail above your main score. If a voice command is misheard or you make a typo, tap <strong>↶ Undo</strong> to instantly revert your score and dart count to the exact previous state.
+        </li>
+      </ul>
+    </section>
+
+    <section>
       <h3>Route Legend</h3>
       <ul>
         <li><span class="badge best">Best</span> Highest conversion EV based on survivability, guaranteed double equity, and parity depth.</li>
@@ -259,7 +370,14 @@
         <li><span class="badge setup">Setup</span> Strategic positioning shots when a checkout is mathematically impossible or to manage bogey numbers.</li>
       </ul>
     </section>
-
+    
+    <div class="share-section">
+      <h3>Share Dart Advisor</h3>
+      <img src="./dart-advisor-qr.png" alt="Dart Advisor QR Code" class="qr-code">
+      <p class="ios-instruction">
+        <strong>iPhone Users:</strong> Open in Safari, tap Share, and select <strong>"Add to Home Screen"</strong> for voice access.
+      </p>
+    </div>
     <section class="modal-footer-note">
       <p style="font-size: 0.78rem; line-height: 1.4; color: var(--text-muted); margin: 0;">
       <strong>License &amp; Terms:</strong> Tactical notes, strategic recovery trees, and curated schemas are authored by John Phillip Amarante. 
@@ -299,13 +417,14 @@
 </div>
 
 <script>
-/*! Dart Advisor Engine | (c) 2026 John Phillip Amarante | Data: CC BY-NC-SA 4.0 | Non-Commercial */
 
 /* =========================================================================
    1. APPLICATION STATE & UI CONTROLLERS (LIGHTWEIGHT LOGIC LAYER)
    ========================================================================= */
 let currentScore = "";
+let mathLog = ""; 
 let dartsInHand = 3;
+let scoreHistory = []; // Timeline stack for Undo
 
 function getDb() { 
   const local = localStorage.getItem("dart_tactical_hybrid_v3"); 
@@ -317,10 +436,120 @@ function setDarts(n) {
   [1, 2, 3].forEach(i => document.getElementById(`btnDarts${i}`).classList.toggle('active', i === n)); 
   renderDisplay(); 
 }
-function pressNum(d) { if (currentScore.length >= 3) return; currentScore += d; updateScoreDisplay(); }
+
+// Helper to snapshot the locked state of the game
+function pushState() {
+  scoreHistory.push({
+    score: currentScore,
+    math: mathLog,
+    darts: dartsInHand
+  });
+  if (scoreHistory.length > 20) scoreHistory.shift();
+}
+
+function pressNum(d) { 
+  if (!currentScore.includes('-') && !currentScore.includes('*') && currentScore.length >= 3) return;
+  if (currentScore.length >= 15) return; 
+  currentScore += d; 
+  updateScoreDisplay(); 
+}
+
+function pressOp(op) {
+  if (currentScore === "" || /[\-\*]$/.test(currentScore)) return;
+  mathLog = ""; 
+  currentScore += op;
+  updateScoreDisplay();
+}
+
+function pressTreble() {
+  if (currentScore === "") return;
+  if (!currentScore.endsWith('-') && !currentScore.endsWith('*')) currentScore += "-";
+  if (currentScore.endsWith('-')) { currentScore += "3*"; updateScoreDisplay(); }
+}
+function pressDouble() {
+  if (currentScore === "") return;
+  if (!currentScore.endsWith('-') && !currentScore.endsWith('*')) currentScore += "-";
+  if (currentScore.endsWith('-')) { currentScore += "2*"; updateScoreDisplay(); }
+}
+
 function backspace() { currentScore = currentScore.slice(0, -1); updateScoreDisplay(); }
-function clearScore() { currentScore = ""; updateScoreDisplay(); }
-function updateScoreDisplay() { document.getElementById('scoreDisplay').innerText = currentScore || "—"; renderDisplay(); }
+
+function clearScore() { 
+  currentScore = ""; 
+  mathLog = ""; 
+  scoreHistory = []; // Wipe timeline on hard reset
+  updateScoreDisplay(); 
+}
+
+function getEvaluatedScore() {
+  if (!currentScore) return null;
+  let safeMath = currentScore.replace(/[\-\*]+$/, ''); 
+  try { return new Function('return ' + safeMath)(); } catch(e) { return null; }
+}
+
+function commitScore() {
+  if (!currentScore) return;
+  const isEquation = /[\-\*]/.test(currentScore);
+  const calcValue = getEvaluatedScore();
+  
+  if (calcValue !== null) {
+    if (calcValue < 2) { alert("Bust or invalid score."); clearScore(); return; }
+    
+    if (isEquation) {
+      mathLog = currentScore; 
+      if (dartsInHand > 1) {
+        dartsInHand -= 1;
+        [1, 2, 3].forEach(i => document.getElementById(`btnDarts${i}`).classList.toggle('active', i === dartsInHand));
+      }
+    } else {
+      mathLog = ""; 
+    }
+    
+    currentScore = calcValue.toString();
+    pushState(); // Save the finalized state to the timeline
+    updateScoreDisplay();
+    speakRecommendation(`${currentScore}_${dartsInHand}`);
+  }
+}
+
+function undoScore() {
+  if (scoreHistory.length <= 1) {
+    clearScore(); // If only 1 state remains, clear the board completely
+    return;
+  }
+  
+  scoreHistory.pop(); // Discard the current active state
+  const lastState = scoreHistory[scoreHistory.length - 1]; // Peek at previous state
+  
+  currentScore = lastState.score;
+  mathLog = lastState.math;
+  dartsInHand = lastState.darts;
+  
+  setDarts(dartsInHand);
+  updateScoreDisplay();
+  speakRecommendation(`${currentScore}_${dartsInHand}`); // Speaks the successfully restored score
+}
+
+function formatEq(str) {
+  if (!str) return "";
+  return str.replace(/-3\*/g, ' - T').replace(/-2\*/g, ' - D').replace(/-/g, ' - ');
+}
+
+function updateScoreDisplay() { 
+  const historyEl = document.getElementById('mathHistory');
+  const mainEl = document.getElementById('mainScore');
+  const isEq = /[\-\*]/.test(currentScore);
+
+  if (isEq) {
+    historyEl.innerText = formatEq(currentScore);
+    const calc = getEvaluatedScore();
+    mainEl.innerText = calc !== null ? calc : "—";
+  } else {
+    historyEl.innerText = formatEq(mathLog); 
+    mainEl.innerText = currentScore || "—";
+  }
+  renderDisplay(); 
+}
 
 /* =========================================================================
    2. VOICE CONTROL ENGINE (SpeechRecognition + Simulation Fallback)
@@ -352,9 +581,7 @@ if (SpeechRec) {
   };
 
   recognition.onresult = (event) => {
-    // Safari Bug Fix: Force the microphone to close immediately
     try { recognition.stop(); } catch(e) {}
-    
     const transcript = event.results[0][0].transcript.toLowerCase();
     parseDartsVoice(transcript);
   };
@@ -363,61 +590,138 @@ if (SpeechRec) {
     try { recognition.start(); } catch(e) { recognition.stop(); }
   });
 } else {
-  // Desktop Firefox Fallback: Simulated Voice Prompt
-  btnVoice.title = "Browser lacks mic input. Click to test voice simulation!";
+  btnVoice.title = "Browser lacks mic input.";
   btnVoice.addEventListener('click', () => {
-    const simulatedSpeech = prompt("Voice Simulator (Firefox fallback):\nSay something like '2 darts 76' or '82 with 3 darts':", "2 darts 76");
-    if (simulatedSpeech) {
-      parseDartsVoice(simulatedSpeech.toLowerCase());
-    }
+    const simulatedSpeech = prompt("Voice Simulator:\nSay something like '170' or 'trip 20':", "trip 20");
+    if (simulatedSpeech) parseDartsVoice(simulatedSpeech.toLowerCase());
   });
 }
 
 function parseDartsVoice(text) {
-  // 1. Extract darts count safely using word boundaries (avoids triggering on scores like "72")
+  let norm = text.toLowerCase();
+
+  // STT Quirks Fixes
+  norm = norm.replace(/one\s+hundred/g, "100");
+  const spokenPrefixes = { "one seventy": "17", "one sixty": "16", "one fifty": "15", "one forty": "14", "one thirty": "13", "one twenty": "12" };
+  const units = {"one":"1", "two":"2", "three":"3", "four":"4", "five":"5", "six":"6", "seven":"7", "eight":"8", "nine":"9"};
+  for (const [words, prefix] of Object.entries(spokenPrefixes)) {
+    for (const [unitWord, digit] of Object.entries(units)) { norm = norm.replace(new RegExp(`${words}\\s+${unitWord}`, 'g'), prefix + digit); }
+    norm = norm.replace(new RegExp(words, 'g'), prefix + "0");
+  }
+  norm = norm.replace(/\b1\s+([0-9]{2})\b/g, '1$1');
+
+  const validDartStrings = ["twenty","nineteen","eighteen","seventeen","sixteen","fifteen","fourteen","thirteen","twelve","eleven","ten","nine","eight","seven","six","five","four","three","two","one"];
+  const dartMatchRegex = new RegExp(`\\b(2|3|two|three)\\s+([a-z0-9]+)\\b`, 'gi');
+  norm = norm.replace(dartMatchRegex, (match, multWord, targetWord) => {
+    if (validDartStrings.includes(targetWord) || (!isNaN(parseInt(targetWord)) && parseInt(targetWord) <= 20)) {
+      const isTrip = (multWord === '3' || multWord === 'three');
+      return (isTrip ? "triple " : "double ") + targetWord;
+    }
+    return match;
+  });
+
+  // Extract darts
   let dCount = null;
-  const dartMatch = text.match(/(?:with\s+)?(3|2|1|three|two|one)\s*darts?/i);
-  if (dartMatch) {
-    const dStr = dartMatch[1];
+  const dMatch = norm.match(/(?:with\s+)?(3|2|1|three|two|one)\s*darts?/i);
+  if (dMatch) {
+    const dStr = dMatch[1];
     if (dStr === '3' || dStr === 'three') dCount = 3;
     else if (dStr === '2' || dStr === 'two') dCount = 2;
     else if (dStr === '1' || dStr === 'one') dCount = 1;
   }
+  let remainingText = norm.replace(/(?:with\s+)?(3|2|1|three|two|one)\s*darts?/i, '').trim();
 
-  // 2. Remove the dart count phrase entirely so the digits aren't mistaken for the target score
-  let remainingText = text.replace(/(?:with\s+)?(3|2|1|three|two|one)\s*darts?/i, '').trim();
+  // Deduction Triggers
+  let multiplier = 1;
+  if (remainingText.match(/triple|treble|trip/i)) multiplier = 3;
+  else if (remainingText.match(/double/i)) multiplier = 2;
+  let isDeduction = /minus|subtract|hit|single|double|triple|treble|trip|bull|\-/i.test(norm);
 
-  // 3. Extract the score from the remaining text
+  // Score Extraction
   let scoreVal = null;
-  if (remainingText.includes("tops")) scoreVal = 40;
-  else if (remainingText.includes("bullseye") || remainingText.includes("bull")) scoreVal = 50;
+  let isFixedTarget = false;
+  if (/tops/i.test(remainingText)) { scoreVal = 40; isFixedTarget = true; } 
+  else if (/single\s+(bull|ball|bowl|bell|pull|bold|pole|bow|bo)/i.test(remainingText)) { scoreVal = 25; isFixedTarget = true; } 
+  else if (/double\s+(bull|ball|bowl|bell|pull|bold|pole|bow|bo)/i.test(remainingText) || /(bullseye|bulls\s*eye|bulls-eye)/i.test(remainingText) || /\b(bull|bowl|bell)\b/i.test(remainingText)) { scoreVal = 50; isFixedTarget = true; } 
   else {
-    const match = remainingText.match(/\b([2-9]|[1-9][0-9]|[1-4][0-9]{2}|50[0-1])\b/);
-    if (match) scoreVal = parseInt(match[1], 10);
+    const match = remainingText.match(/\b([1-9]|[1-9][0-9]|[1-4][0-9]{2}|50[0-1])\b/);
+    if (match) { scoreVal = parseInt(match[1], 10); } 
+    else {
+      for (const [word, num] of Object.entries(units)) { if (new RegExp(`\\b${word}\\b`, 'i').test(remainingText)) { scoreVal = parseInt(num, 10); break; } }
+      const textToNum = { "ten":10, "eleven":11, "twelve":12, "thirteen":13, "fourteen":14, "fifteen":15, "sixteen":16, "seventeen":17, "eighteen":18, "nineteen":19, "twenty":20 };
+      for (const [word, num] of Object.entries(textToNum)) { if (new RegExp(`\\b${word}\\b`, 'i').test(remainingText)) { scoreVal = num; break; } }
+    }
   }
 
-  if (dCount) setDarts(dCount);
-  if (scoreVal) {
-    currentScore = scoreVal.toString();
-    updateScoreDisplay();
-    speakRecommendation(`${scoreVal}_${dartsInHand}`);
+  // Intelligent Context: Any number spoken while a score is active defaults to subtracting
+  if (!isDeduction && currentScore !== "") {
+     if (!dCount) {
+       isDeduction = true;
+     }
+  }
+
+  // 7. Execution
+  if (scoreVal !== null) {
+    if (isDeduction && currentScore !== "") {
+      currentScore = currentScore.replace(/[\-\*]+$/, '');
+      if (isFixedTarget) {
+        currentScore += "-" + scoreVal;
+      } else {
+        if (multiplier === 3) currentScore += "-3*" + scoreVal;
+        else if (multiplier === 2) currentScore += "-2*" + scoreVal;
+        else currentScore += "-" + scoreVal;
+      }
+      
+      commitScore(); 
+    } else {
+      currentScore = scoreVal.toString();
+      mathLog = ""; 
+      setDarts(dCount || 3);
+      pushState(); // Save absolute voice input to Undo timeline
+      updateScoreDisplay();
+      speakRecommendation(`${currentScore}_${dartsInHand}`);
+    }
+  } else if (dCount) {
+    setDarts(dCount);
   }
 }
 
 function speakRecommendation(key) {
   if (!window.speechSynthesis) return;
-  const db = getDb();
-  const entries = db[key];
-  if (!entries || entries.length === 0) return;
+  const [scoreStr, dartsStr] = key.split('_');
+  const score = parseInt(scoreStr, 10);
+  const darts = parseInt(dartsStr, 10);
 
-  const topRoute = entries.find(e => e.type === 'best') || entries[0];
-  const speechText = topRoute.route
+  const db = getDb();
+  let routeText = "";
+
+  // 1. Check custom or default database entries first
+  const entries = db[key];
+  if (entries && entries.length > 0) {
+    const topRoute = entries.find(e => e.type === 'best') || entries[0];
+    routeText = topRoute.route;
+  } else {
+    // 2. Fall back to dynamic engine calculations if not hardcoded in DB
+    const calc = computeEngineOut(score, darts);
+    if (calc) {
+      routeText = calc.route;
+    } else {
+      const setup = computeSetupShot(score, darts);
+      if (setup) {
+        routeText = setup.route;
+      }
+    }
+  }
+
+  if (!routeText) return;
+
+  const speechText = routeText
     .replace(/→/g, 'then')
+    .replace(/D25/g, 'Bullseye')
+    .replace(/\b25\b/g, 'Single Bull')
     .replace(/T(\d+)/g, 'Triple $1, ')
     .replace(/D(\d+)/g, 'Double $1')
-    .replace(/S(\d+)/g, 'Single $1, ')
-    .replace(/D25/g, 'Bullseye')
-    .replace(/25/g, 'Single Bull');
+    .replace(/S(\d+)/g, 'Single $1, ');
 
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(speechText);
@@ -460,12 +764,9 @@ function getSafetyScore(s, isOdd) {
 
 function computeSetupShot(score, darts) {
   if (darts === 1) {
-    // Exact 1-dart out handled by engine (D25 on 50, direct doubles <= 40)
     if (score === 50 || (score <= 40 && score % 2 === 0)) return null;
-
-    // 1 DART ON ODD SCORES (41 to 59): Must throw at an odd single to leave an even double
+    
     if (score % 2 !== 0 && score <= 59) {
-      // Priority 1: Single that leaves Tops (40) and accidental treble does not bust
       const singleToTops = score - 40;
       if (singleToTops >= 1 && singleToTops <= 19 && (singleToTops * 3) < score) {
         const trebleLeaf = score - (singleToTops * 3);
@@ -476,8 +777,6 @@ function computeSetupShot(score, darts) {
           note: `Never throw at 20 on an odd total. S${singleToTops} sets up Tops for your next visit, and an accidental treble cannot bust.`
         };
       }
-
-      // Priority 2: Single that leaves D16 (32)
       const singleTo32 = score - 32;
       if (singleTo32 >= 1 && singleTo32 <= 19 && (singleTo32 * 3) < score) {
         const trebleLeaf = score - (singleTo32 * 3);
@@ -489,9 +788,7 @@ function computeSetupShot(score, darts) {
       }
     }
 
-    // 1 DART ON EVEN SCORES (42 to 60): Steer to Tops or D16 with bust-safe trebles
     if (score % 2 === 0 && score > 40 && score <= 60) {
-      // If S(score - 40) is bust-safe to Tops
       const singleToTops = score - 40;
       if (singleToTops >= 2 && singleToTops <= 20) {
         const trebleBust = (singleToTops * 3) >= score;
@@ -503,7 +800,6 @@ function computeSetupShot(score, darts) {
       }
     }
 
-    // 61 to 100 with 1 dart: Routine reduction toward 20s or 19s
     if (score > 60 && score <= 100) {
       return {
         route: "Aim S20 / S19",
@@ -515,12 +811,66 @@ function computeSetupShot(score, darts) {
     return { route: "Aim S20 / Preferred Scoring Bed", miss: "Avoid straying into low numbers", note: "Standard setup dart to reduce total." };
   }
 
-  // 2 DARTS ON HIGH SCORES (111 to 130)
-  if (darts === 2 && score > 110 && score <= 130) {
-    return { route: "T20 → Leaves clean finish", miss: "Fat 20 brings score below 110", note: `Throw at T20. Even with a single 20, you leave ${score - 20}, setting up an easy 3-dart out next turn.` };
+  if (darts === 2) {
+    // Dynamic 2-Dart Setup Engine
+    const preferredLeaves = [40, 32, 36, 16, 50]; 
+    const primaryAims = [20, 19, 18, 17];
+    
+    // Helper to find the smartest 2nd dart to reach a preferred double
+    function getSetupDart(scoreAfterAim, preferTreble) {
+       if (preferTreble) {
+          // If first dart was a Single, we likely need a Treble to rescue the setup
+          for (let leave of preferredLeaves) {
+             let req = scoreAfterAim - leave;
+             if (req > 20 && req <= 60 && req % 3 === 0) return { dart: `T${req/3}`, leave };
+          }
+          // Fallback to Single if a Treble isn't required
+          for (let leave of preferredLeaves) {
+             let req = scoreAfterAim - leave;
+             if (req >= 1 && req <= 20) return { dart: `S${req}`, leave };
+             if (req === 25) return { dart: `Bull`, leave };
+          }
+       } else {
+          // If first dart was a Treble, strictly hunt for safe Singles
+          for (let leave of preferredLeaves) {
+             let req = scoreAfterAim - leave;
+             if (req >= 1 && req <= 20) return { dart: `S${req}`, leave };
+             if (req === 25) return { dart: `Bull`, leave };
+          }
+          // Fallback to Treble if forced
+          for (let leave of preferredLeaves) {
+             let req = scoreAfterAim - leave;
+             if (req > 20 && req <= 60 && req % 3 === 0) return { dart: `T${req/3}`, leave };
+          }
+       }
+       return null;
+    }
+
+    // Evaluate all major scoring beds for a guaranteed 2-dart setup path
+    for (let aim of primaryAims) {
+      let trebleHit = score - (aim * 3);
+      let singleHit = score - aim;
+      
+      let afterTreble = getSetupDart(trebleHit, false); 
+      let afterSingle = getSetupDart(singleHit, true);  
+
+      if (afterTreble && afterSingle) {
+         const targetLeaveStr = afterTreble.leave === afterSingle.leave ? afterTreble.leave : `${afterTreble.leave} / ${afterSingle.leave}`;
+         return {
+            route: `Aim T${aim} → (Setup for ${targetLeaveStr})`,
+            miss: `If T${aim}: ${afterTreble.dart} leaves ${afterTreble.leave} | If S${aim}: ${afterSingle.dart} leaves ${afterSingle.leave}`,
+            note: `Dynamic 2-dart setup. Covers both the treble and the single miss, mapping your second dart to guarantee a premier double for your next visit.`
+         };
+      }
+    }
+    
+    return {
+       route: `Aim T20 (Score Reduction)`,
+       miss: `Maximize scoring to reach a checkout zone.`,
+       note: `Score is too high or awkward to guarantee a clean premier double leave on a single miss. Focus on heavy scoring.`
+    };
   }
 
-  // 3 DARTS ON BOGEYS OR SETUP RANGES
   if (darts === 3) {
     const bogeys = [169, 168, 166, 165, 163, 162, 159];
     if (bogeys.includes(score)) return { route: `Aim T20 (Bogey Breakdown)`, miss: "Single still breaks the bogey total", note: `You cannot finish ${score}. A single 20 instantly removes you from the bogey trap, leaving a valid 3-dart checkout next turn.` };
@@ -584,15 +934,22 @@ function computeEngineOut(score, darts) {
   return null;
 }
 
+/* =========================================================================
+   4. DYNAMIC CALCULATION & RENDERING ENGINE
+   ========================================================================= */
+// ... (keep getSafetyScore, computeSetupShot, computeEngineOut identical)
+
 function renderDisplay() {
   const container = document.getElementById('resultsContainer');
   const actionBar = document.getElementById('actionBar');
   container.innerHTML = "";
 
-  if (!currentScore) { actionBar.style.display = 'none'; return; }
+  const calcValue = getEvaluatedScore();
+  if (calcValue === null) { actionBar.style.display = 'none'; return; }
+  
   actionBar.style.display = 'flex';
 
-  const score = parseInt(currentScore, 10);
+  const score = parseInt(calcValue, 10);
   if (score < 2 || score > 170) { 
     container.innerHTML = `<div class="out-card avoid"><span class="badge avoid">Out of Range</span><div class="route-line">Invalid Score</div></div>`; 
     return; 
@@ -700,212 +1057,331 @@ if ('serviceWorker' in navigator) {
 const defaultDb = {
   // 170 TO 131 BLOCK
   "170_3": [{"type": "best", "route": "T20 → T20 → D25", "miss": "If S20 : Leaves 150 | If T20 → S20 : Leaves 90", "note": "The Big Fish. You need two perfect trebles to earn a shot at the Bullseye. A single 20 early means you are strictly setting up for your next turn."}],
-  "169_3": [
+  "170_2": [{"type": "setup", "route": "T20 → T20", "miss": "If S20 : Leaves 130", "note": "Power scoring. You cannot check this out, so smash the 20s to leave a perfect 50 for your next visit."}],
+  "170_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 150", "note": "One dart left, just aim at 20 to set up a clean 3-dart finish next turn."}],"169_3": [
     {"type": "setup", "route": "T20 → T20 → S9", "miss": "If S20 : Leaves 149 | If T9 : Leaves 22", "note": "You can't finish 169. Two T20s leave 49. Use your last dart on a single 9 to leave exactly Tops for your next turn. If you drift into T9, you safely leave 22."},
     {"type": "avoid", "route": "T20 → T20 → S17", "miss": "If T17 : Bust", "note": "A massive trap. Aiming at 17 from 49 might look good to leave 32, but an accidental T17 busts your turn entirely."}
   ],
+  "169_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 129", "note": "A curated setup. T20 leaves 109, allowing you to drop to T19 to leave 52, meaning a simple 12 leaves Tops next visit."}],
+  "169_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 149", "note": "Fire at 20s. A single leaves 149, safely keeping you out of bogey numbers."}],
   "168_3": [
     {"type": "setup", "route": "T20 → T20 → S8", "miss": "If S20 : Leaves 148 | If T8 : Leaves 24", "note": "No checkout available. Hit two T20s to leave 48, then pop a single 8 to set up Tops. An accidental T8 safely leaves 24."},
     {"type": "avoid", "route": "T20 → T20 → S16", "miss": "If T16 : Bust", "note": "Never go for 16 from 48. If you accidentally hit T16, you score exactly 48 without hitting a double and bust your visit."}
   ],
+  "168_2": [{"type": "setup", "route": "T20 → T20", "miss": "If S20 : Leaves 128", "note": "Max scoring leaves 48. This guarantees an elite single 8 to Tops route for your next trip to the board."}],
+  "168_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 148", "note": "Smash the 20s to chip away at the total and set up a safe finish."}],
   "167_3": [
     {"type": "best", "route": "T20 → T19 → D25", "miss": "If S20 : Leaves 147 | If T20 → S19 : T16", "note": "The pro standard. T20 leaves 107, allowing you to drop to T19 for the Bullseye. If your second dart drops into a single 19, you have 88 left. Fire at T16 to leave Tops."},
     {"type": "alt", "route": "T19 → T20 → D25", "miss": "If S19 : Leaves 148 | If T19 → S20 : 25", "note": "A great choice if you prefer staying low first. A single 19 on your first dart leaves 148, keeping the standard T20 to T16 path open for a 32 finish."}
   ],
+  "167_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 127", "note": "T20 leaves 107, so switch to T19 to cleanly leave 50 for a Bullseye pivot next turn."}],
+  "167_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 147", "note": "Hit the 20s to secure a reliable 3-dart checkout range."}],
   "166_3": [
     {"type": "setup", "route": "T20 → T20 → S14", "miss": "If S20 : Leaves 146 | If T14 : Leaves 4", "note": "No finish here. Two T20s leave 46. Toss your last dart at 14 to leave 32. If you accidentally snag T14, you leave 4 and stay alive."},
     {"type": "alt", "route": "T20 → T20 → S6", "miss": "If T6 : Leaves 28", "note": "If you prefer Tops over 32, use 6 instead of 14 for your setup dart. An accidental T6 safely leaves 28."}
   ],
+  "166_2": [{"type": "setup", "route": "T20 → T18", "miss": "If S20 : Leaves 126", "note": "T20 leaves 106, allowing a drop to T18 to leave 52, seamlessly setting up 12 to Tops."}],
+  "166_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 146", "note": "Aim high on 20s to drastically reduce the massive score."}],
   "165_3": [
     {"type": "setup", "route": "T20 → T20 → S13", "miss": "If S20 : Leaves 145 | If T13 : Leaves 6", "note": "You can't check this out. Two T20s leave 45. Hit a single 13 to leave a perfect 32. If you pull it into T13, you leave 6. Safe and smart."},
     {"type": "alt", "route": "T20 → T20 → S5", "miss": "If T5 : Leaves 30", "note": "Keeps you throwing at the top of the board. A single 5 from 45 leaves Tops, and a stray T5 leaves you on 30."}
   ],
+  "165_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 125", "note": "Do not hit two T20s and leave 45. T20 leaves 105, meaning T17 perfectly leaves 54 for a single 14 to Tops route."}],
+  "165_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 146", "note": "An elite tactical play. Do not aim 20s and risk leaving 105. T19 perfectly leaves 108, securing a pristine T20 route next visit."}],
   "164_3": [
     {"type": "best", "route": "T20 → T18 → D25", "miss": "If S20 : Leaves 144 | If T20 → S18 : T18", "note": "The main tour route. T20 leaves 104, so slide to T18 for the Bullseye. If you hit a single 18 on dart two, you are on 86, meaning you stay right there on 18s to leave 32."},
     {"type": "alt", "route": "T19 → T19 → D25", "miss": "If S19 : Leaves 145 | If T19 → S19 : T16", "note": "Locks your first two darts into the exact same target. If dart two hits a single 19, you have 88 left to clean up with T16 for Tops."}
   ],
+  "164_2": [{"type": "setup", "route": "T20 → T18", "miss": "If S20 : Leaves 124", "note": "T20 leaves 104, so switch to T18 to leave a flawless 50."}],
+  "164_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 144", "note": "Go for 20s to leave 144 on a single hit."}],
   "163_3": [
     {"type": "setup", "route": "T20 → T20 → S11", "miss": "If S20 : Leaves 143 | If T11 : Leaves 10", "note": "No checkout available. After two T20s, you have 43. Aiming 11 cleanly leaves 32, and an accidental T11 just leaves 10."},
     {"type": "alt", "route": "T20 → T20 → S3", "miss": "If T3 : Leaves 34", "note": "Drops straight down the middle. From 43, hit a single 3 for Tops. A bad T3 leaves 34."}
   ],
+  "163_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 123", "note": "T20 leaves 103, meaning a clean T19 leaves 46, teeing up a simple 14 to 32."}],
+  "163_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 143", "note": "Hit the 20s to drop below 150."}],
   "162_3": [
     {"type": "setup", "route": "T20 → T20 → S10", "miss": "If S20 : Leaves 142 | If T10 : Leaves 12", "note": "Can't finish this in three. Hit your T20s to leave 42, then use a single 10 to leave 32. If you hit T10 by mistake, you still have 12 left."},
     {"type": "alt", "route": "T20 → T20 → S2", "miss": "If T2 : Leaves 36", "note": "A simple Tops setup. From 42, hit a single 2 to leave 40. An accidental T2 leaves a very nice 36 for your next turn."}
   ],
+  "162_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 122", "note": "T20 leaves 102. A solid T16 leaves 54, so you can easily run 14 to Tops next time."}],
+  "162_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 142", "note": "Smash 20s to ensure a comfortable setup."}],
   "161_3": [
     {"type": "best", "route": "T20 → T17 → D25", "miss": "If S20 : Leaves 141 | If T20 → S17 : T16", "note": "The classic finish. T20 leaves 101, then drop down to T17 for the Bullseye. If you hit a single 17 on dart two, you are at 84, meaning a T16 leaves 36."},
     {"type": "alt", "route": "T19 → T18 → D25", "miss": "If S19 : Leaves 142 | If T19 → S18 : T18", "note": "Keeps both setup darts near the bottom of the board. If your second dart is a single 18, you have 86 left and can just hit T18 to leave 32."}
   ],
+  "161_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 121", "note": "T20 leaves 101, letting you use T17 to leave exactly 50."}],
+  "161_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 141", "note": "Aim high on the 20s."}],
   "160_3": [{"type": "best", "route": "T20 → T20 → D20", "miss": "If S20 : Leaves 140 | If T20 → S20 : Leaves 80", "note": "The classic three-dart out. You must hit two T20s to earn a shot at Tops. A single 20 anywhere kills the checkout, forcing you into a setup role."}],
+  "160_2": [{"type": "setup", "route": "T20 → T20", "miss": "If S20 : Leaves 120", "note": "Pound the 20s. Two trebles gracefully leave 40 for your next visit."}],
+  "160_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 140", "note": "Hit 20s. A single leaves 140, setting up a standard T20 route."}],
   "159_3": [{"type": "setup", "route": "T20 → T20 → S7", "miss": "If S20 : Leaves 139 | If T7 : Leaves 18", "note": "No finish here. After two T20s leave 39, hit a single 7 to set up 32 for next time. An accidental T7 safely leaves 18."}],
+  "159_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 119", "note": "T20 leaves 99, opening up T19 to leave exactly 42, giving you a clean 10 to 32 path."}],
+  "159_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 139", "note": "Hit 20s. A single safely drops you to 139."}],
   "158_3": [
     {"type": "best", "route": "T20 → T20 → D19", "miss": "If S20 : Leaves 138 | If T20 → S20 : T18", "note": "Forces you into an odd double, but staying on the 20s is standard. If you hit a single 20 first, you have 138 left, which you fix with T20 to T18 for 24."},
     {"type": "alt", "route": "T20 → T16 → D25", "miss": "If T20 → S16 : T14", "note": "Use this if you absolutely hate D19. From 98, shifting down to T16 lines up a Bullseye finish instead."}
   ],
+  "158_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 118", "note": "T20 leaves 98, setting up a shift to T16 to perfectly leave 50."}],
+  "158_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 138", "note": "Fire at 20s."}],
   "157_3": [{"type": "best", "route": "T20 → T19 → D20", "miss": "If S20 : Leaves 137 | If T20 → S19 : T20", "note": "The main path to Tops. T20 leaves 97, setting up a drop to T19. If your first dart is a single 20, you are on 137. Hit T20 then T19 to leave 20."}],
+  "157_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 117", "note": "T20 leaves 97, so cross to T19 to flawlessly leave 40."}],
+  "157_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 137", "note": "Go for 20s."}],
   "156_3": [{"type": "best", "route": "T20 → T20 → D18", "miss": "If S20 : Leaves 136 | If T20 → S20 : T20", "note": "The pro standard. Back-to-back T20s leave a perfect 36. A single 20 first leaves 136, so you just need two T20s to salvage 16."}],
+  "156_2": [{"type": "setup", "route": "T20 → T20", "miss": "If S20 : Leaves 116", "note": "Pound the 20s to leave a perfectly pristine 36."}],
+  "156_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 136", "note": "Hit 20s."}],
   "155_3": [
     {"type": "best", "route": "T20 → T19 → D19", "miss": "If S20 : Leaves 135 | If T20 → S19 : T20", "note": "The standard route to an odd double. T20 leaves 95, so drop to T19 for the out. A single 20 first leaves 135, forcing T20 to T17 to leave 24."},
     {"type": "alt", "route": "T20 → T15 → D25", "miss": "If T20 → S15 : T20", "note": "Go this way to avoid D19. After your first T20, shifting to T15 leaves 50 for the Bullseye."}
   ],
+  "155_2": [{"type": "setup", "route": "T20 → T15", "miss": "If S20 : Leaves 115", "note": "T20 leaves 95, meaning T15 gracefully leaves 50."}],
+  "155_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 135", "note": "Aim at the 20s."}],
   "154_3": [
     {"type": "best", "route": "T20 → T18 → D20", "miss": "If S20 : Leaves 134 | If T20 → S18 : T20", "note": "The direct path to Tops. T20 leaves 94, so switch to T18. A single 20 first leaves 134, keeping you in the game with T20 to T14 to leave 20."},
     {"type": "alt", "route": "T19 → T19 → D20", "miss": "If S19 : Leaves 135 | If T19 → S19 : T18", "note": "Locks you into a single target rhythm. T19 leaves 97, and another T19 leaves Tops. If your first dart is a fat 19, you have 135 left, pivoting to 25 then T20 to leave Tops."}
   ],
+  "154_2": [{"type": "setup", "route": "T20 → T18", "miss": "If S20 : Leaves 114", "note": "T20 leaves 94, allowing T18 to leave a flawless 40."}],
+  "154_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 134", "note": "Smash 20s."}],
   "153_3": [{"type": "best", "route": "T20 → T19 → D18", "miss": "If S20 : Leaves 133 | If T20 → S19 : T20", "note": "Sets up a highly reliable 36. T20 leaves 93, sliding nicely into T19. A single 20 first leaves 133, so you just stay on that T20 to T19 path to leave 16."}],
+  "153_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 113", "note": "T20 leaves 93, letting T19 cleanly set up 36."}],
+  "153_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 133", "note": "Aim high on the 20s."}],
   "152_3": [{"type": "best", "route": "T20 → T20 → D16", "miss": "If S20 : Leaves 132 | If T20 → S20 : T20", "note": "The perfect setup. Two T20s cleanly leave 32. If your first dart is a single 20, you have 132 left, meaning you just hit two more T20s to leave 12."}],
+  "152_2": [{"type": "setup", "route": "T20 → T20", "miss": "If S20 : Leaves 112", "note": "Pound the 20s to leave a pristine 32."}],
+  "152_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 132", "note": "Go for 20s."}],
   "151_3": [{"type": "best", "route": "T20 → T17 → D20", "miss": "If S20 : Leaves 131 | If T20 → S17 : T14", "note": "The primary Tops route. T20 leaves 91, so drop to T17. A single 20 first leaves 131, meaning you can pivot to T20 then T13 for 32."}],
+  "151_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 111", "note": "T20 leaves 91, meaning T17 perfectly leaves 40."}],
+  "151_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 131", "note": "Hit 20s."}],
   "150_3": [
     {"type": "best", "route": "T20 → T18 → D18", "miss": "If S20 : Leaves 130 | If T20 → S18 : T16", "note": "The classic pro path. T20 leaves 90, setting up T18 for a clean 36. If you hit a single 20 first, you're at 130, meaning you can pivot to T20 for the Bullseye."},
     {"type": "alt", "route": "D25 → T20 → D20", "miss": "If 25 : Leaves 125 | If D25 → S20 : T10", "note": "A flashy route. The Bullseye option isn't recommended if your opponent is sitting on a finish, but if there's no pressure, hitting the outer 25 leaves 125, giving you a very high percentage to clean up on your next turn."}
   ],
+  "150_2": [{"type": "setup", "route": "T20 → T18", "miss": "If S20 : Leaves 130", "note": "T20 leaves 90, meaning T18 flawlessly leaves 36."}],
+  "150_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 130", "note": "Aim at the 20s."}],
   "149_3": [{"type": "best", "route": "T20 → T19 → D16", "miss": "If S20 : Leaves 129 | If T20 → S19 : T18", "note": "The main road to 32. T20 leaves 89, setting up a smooth drop to T19. If you hit a single 20 first, you have 129, safely recovered with T19 to T16 for 24."}],
   "148_3": [
     {"type": "best", "route": "T20 → T16 → D20", "miss": "If S20 : Leaves 128 | If T20 → S16 : T16", "note": "The smartest setup for Tops. T20 leaves 88, so move down to T16. If you hit a single 16 on dart two, you still have 72 left for a high-percentage T16 to 24 finish."},
     {"type": "alt", "route": "T20 → T20 → D14", "miss": "If S20 : Leaves 128 | If T20 → S20 : T20", "note": "Keeps you throwing at the top of the board, but traps you on D14. We avoid D14 where possible because a single wire miss immediately splits you into an awkward odd number (D7)."}
   ],
+  "149_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 129", "note": "T20 leaves 89, setting up T19 to cleanly leave 32."}],
+  "149_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 129", "note": "Smash the 20s."}],
+  "148_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 128", "note": "T20 leaves 88, so cross to T16 to leave a flawless 40."}],
+  "148_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 128", "note": "Go for 20s."}],
   "147_3": [
     {"type": "best", "route": "T20 → T17 → D18", "miss": "If S20 : Leaves 127 | If T20 → S17 : T18", "note": "The primary baseline. T20 leaves 87, so aim at T17 for a perfect 36. If you hit a single 17 on dart two, you have 70 left, perfectly setting up T18 to leave 16."},
     {"type": "alt", "route": "T19 → T18 → D18", "miss": "If S19 : Leaves 128 | If T19 → S18 : T16", "note": "Keeps your first two darts at the bottom of the board, minimizing how much you have to move your arm before going for 36."}
   ],
+  "147_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 127", "note": "T20 leaves 87, letting T17 gracefully leave 36."}],
+  "147_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 127", "note": "Hit 20s."}],
   "146_3": [
     {"type": "best", "route": "T20 → T18 → D16", "miss": "If S20 : Leaves 126 | If T20 → S18 : T20", "note": "The tour standard to 32. T20 leaves 86, so slide left to T18. A single 20 first leaves 126, which you fix with two T19s to leave 12."},
     {"type": "alt", "route": "T19 → T19 → D16", "miss": "If S19 : Leaves 127 | If T19 → S19 : T18", "note": "Keeps you locked onto the 19s so you don't have to adjust your aim or kinetic flow."}
   ],
+  "146_2": [{"type": "setup", "route": "T20 → T18", "miss": "If S20 : Leaves 126", "note": "T20 leaves 86, so T18 elegantly leaves 32."}],
+  "146_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 126", "note": "Aim high on the 20s."}],
   "145_3": [
     {"type": "best", "route": "T20 → T15 → D20", "miss": "If S20 : Leaves 125 | If T20 → S15 : T18", "note": "The mathematically superior path to Tops. T20 leaves 85. Opening up T15 guarantees a double: T15 leaves Tops, and a single 15 leaves 70, letting you fire T18 for 16."},
     {"type": "alt", "route": "T20 → T19 → D14", "miss": "If S20 : Leaves 125 | If T20 → S19 : T10", "note": "A common rhythm play that naturally flows down the board. The drawback is it forces you into D14, which breaks down into an ugly D7 if you miss inside."},
     {"type": "alt", "route": "T19 → T16 → D20", "miss": "If S19 : Leaves 126 | If T19 → S16 : T16", "note": "Starts you low on the board. T19 leaves 88, letting you stay low on T16 for Tops."}
   ],
+  "145_2": [{"type": "setup", "route": "T20 → T15", "miss": "If S20 : Leaves 125", "note": "T20 leaves 85, so cross down to T15 to beautifully leave 40."}],
+  "145_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 125", "note": "Pound the 20s."}],
   "144_3": [
     {"type": "best", "route": "T20 → T20 → D12", "miss": "If S20 : Leaves 124 | If T20 → S20 : T16", "note": "The standard power route. Two T20s leave 24. If you drop into a single 20 on dart two, you are at 64, which naturally sets up T16 for 16."},
     {"type": "alt", "route": "T20 → T16 → D18", "miss": "If S20 : Leaves 124 | If T20 → S16 : T20", "note": "A brilliant alternative if you prefer 36 over 24. After T20 leaves 84, shifting to T16 mathematically guarantees a setup on D18."},
     {"type": "alt", "route": "T18 → T18 → D18", "miss": "If S18 : Leaves 126 | If T18 → S18 : T16", "note": "Keeps your entire checkout physically grouped around the 18s. A single 18 on dart one leaves a manageable 126."}
   ],
+  "144_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 124", "note": "T20 leaves 84, meaning T16 flawlessly leaves 36."}],
+  "144_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 124", "note": "Go for 20s."}],
   "143_3": [
     {"type": "best", "route": "T20 → T17 → D16", "miss": "If S20 : Leaves 123 | If T20 → S17 : T10", "note": "The optimal path to 32. T20 leaves 83, so drop to T17. If your first dart is a single 20, you have 123, fixed with T19 to T16."},
     {"type": "alt", "route": "T19 → T18 → D16", "miss": "If S19 : Leaves 124 | If T19 → S18 : T16", "note": "Starts on the bottom of the board. T19 leaves 86, setting up T18 for 32."}
   ],
+  "143_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 123", "note": "T20 leaves 83, so slide to T17 to leave exactly 32."}],
+  "143_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 123", "note": "Hit 20s."}],
   "142_3": [
     {"type": "best", "route": "T20 → T14 → D20", "miss": "If S20 : Leaves 122 | If T20 → S14 : T20", "note": "The highest-percentage Tops setup. T20 leaves 82. Crossing over to T14 is mathematically safer than T18 because a single 14 leaves 68, giving you an easy T20 to 8."},
     {"type": "alt", "route": "T20 → T18 → D14", "miss": "If S20 : Leaves 122 | If T20 → S18 : T16", "note": "A popular old-school route that leaves 28. It is riskier than the T14 path because D14 breaks down into an odd D7 if you hit the inside wire."},
     {"type": "alt", "route": "T20 → D25 → D16", "miss": "If S20 : Leaves 122 | If T20 → 25 : S17", "note": "A smart survival play on your second dart. Do not use this Bull pivot if your opponent is on a finish, but under low pressure, it guarantees an elite setup for next visit."}
   ],
+  "142_2": [{"type": "setup", "route": "T20 → T14", "miss": "If S20 : Leaves 122", "note": "T20 leaves 82, setting up T14 to brilliantly leave 40."}],
+  "142_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 122", "note": "Aim at the 20s."}],
   "141_3": [
     {"type": "best", "route": "T20 → T19 → D12", "miss": "If S20 : Leaves 121 | If T20 → S19 : T10", "note": "The legendary nine-darter finish. T20 leaves 81, so cross down to T19 for 24. If you hit a single 19 on dart two, you have 62 left, meaning T10 leaves 32."},
     {"type": "alt", "route": "T19 → T16 → D18", "miss": "If S19 : Leaves 122 | If T19 → S16 : T16", "note": "We start T19 instead of T17 here because of the fat-bed safety. If you miss into a single 19, you leave 122, which is much easier to salvage than the 124 you get from a single 17."},
     {"type": "alt", "route": "T17 → T18 → D18", "miss": "If S17 : Leaves 124 | If T17 → S18 : T16", "note": "A classic bottom-board path to 36. You drop to T17, then T18. The primary danger is that a first-dart single 17 traps you on an ugly 124."}
   ],
+  "141_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 121", "note": "T20 leaves 81, meaning T19 perfectly leaves 24 for your next visit."}],
+  "141_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 121", "note": "Smash 20s."}],
   "140_3": [
     {"type": "best", "route": "T20 → T20 → D10", "miss": "If S20 : Leaves 120 | If T20 → S20 : Leaves 60", "note": "The classic power route. T20 leaves 80, and another T20 cleanly leaves 20. If you hit a single 20 on dart one, you have 120 left, letting you go T20 to Tops."},
     {"type": "alt", "route": "T20 → T16 → D16", "miss": "If T20 → S16 : Leaves 64", "note": "The smarter option if you prefer an elite parity double (32). T20 leaves 80. By pivoting to T16, a single 16 on dart two leaves 64, giving you an immediate dual-hit out on T16."}
   ],
+  "140_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 120", "note": "T20 leaves 80, so pivot to T16 to leave exactly 32."}],
+  "140_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 120", "note": "Go for 20s to leave 120."}],
   "139_3": [
     {"type": "best", "route": "T19 → T14 → D20", "miss": "If S19 : Leaves 120 | If T19 → S14 : Leaves 68", "note": "The primary tour route. T19 leaves 82, so drop down to T14 for Tops. A single 19 first leaves exactly 120, setting up a very reliable T20 to Tops path."},
     {"type": "alt", "route": "T20 → T13 → D20", "miss": "If S20 : Leaves 119 | If T20 → S13 : Leaves 58", "note": "Starts high on the board. T20 leaves 79, avoiding the D11 trap by dropping to T13 for Tops."},
     {"type": "alt", "route": "T19 → D25 → D16", "miss": "If S19 : Leaves 120 | If T19 → 25 : Leaves 57", "note": "A mathematically elite setup play if under low pressure. T19 leaves 82. Firing at the Bull guarantees a double attempt: Inner Bull leaves 32, Outer Bull leaves 57, setting up a safe 17 to Tops."}
   ],
+  "139_2": [{"type": "setup", "route": "T19 → T14", "miss": "If S19 : Leaves 120", "note": "T19 leaves 82, meaning T14 gracefully drops you to 40."}],
+  "139_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 120", "note": "Aim at the 19s to perfectly leave 120 on a single."}],
   "138_3": [
     {"type": "best", "route": "T20 → T18 → D12", "miss": "If S20 : Leaves 118 | If T20 → S18 : Leaves 60", "note": "The standard baseline. T20 leaves 78, so step down to T18 for 24. If your second dart hits a single 18, you have 60 left, making it a simple single 20 to Tops."},
     {"type": "alt", "route": "T19 → T19 → D12", "miss": "If S19 : Leaves 119 | If T19 → S19 : Leaves 63", "note": "Keeps both setup darts clustered in the 19s rhythm. A single 19 on dart one leaves 119."}
   ],
+  "138_2": [{"type": "setup", "route": "T20 → T18", "miss": "If S20 : Leaves 118", "note": "T20 leaves 78, so T18 brilliantly drops you onto 24."}],
+  "138_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 118", "note": "Hit 20s."}],
   "137_3": [
     {"type": "best", "route": "T20 → T15 → D16", "miss": "If S20 : Leaves 117 | If T20 → S15 : Leaves 62", "note": "The ideal setup for 32. T20 leaves 77, so T15 gets the job done. If your second dart hits a single 15, you have 62 left, giving you a clean T10 to 32."},
     {"type": "alt", "route": "T20 → T19 → D10", "miss": "If S20 : Leaves 117 | If T20 → S19 : Leaves 58", "note": "The most common top-to-bottom rhythm route. T20 leaves 77, dropping to T19 to leave 20. The drawback is D10 is an odd-split double, whereas the T15 route locks in D16."},
     {"type": "alt", "route": "T19 → T16 → D16", "miss": "If S19 : Leaves 118 | If T19 → S16 : Leaves 64", "note": "Gets you straight to the bottom of the board. T19 leaves 80, opening up a direct T16 for 32."}
   ],
+  "137_2": [{"type": "setup", "route": "T20 → T15", "miss": "If S20 : Leaves 117", "note": "T20 leaves 77, letting you cross to T15 to leave exactly 32."}],
+  "137_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 117", "note": "Aim high on the 20s."}],
   "136_3": [{"type": "best", "route": "T20 → T20 → D8", "miss": "If S20 : Leaves 116 | If T20 → S20 : Leaves 56", "note": "The definitive route. Two T20s leave a perfect 16. If your second dart is a single 20, you have 56 left, which neatly sets up a single 16 for Tops."}
   ],
+  "136_2": [{"type": "setup", "route": "T20 → T12", "miss": "If S20 : Leaves 116", "note": "T20 leaves 76, so pivot down to T12 to cleanly leave 40."}],
+  "136_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 116", "note": "Pound the 20s."}],
   "135_3": [
     {"type": "best", "route": "T20 → T17 → D12", "miss": "If S20 : Leaves 115 | If T20 → S17 : Leaves 58", "note": "The primary tour path. T20 leaves 75, so shift to T17 for 24. If your second dart hits a single 17, you have 58 left, allowing a simple 18 to Tops."},
     {"type": "alt", "route": "T20 → T13 → D18", "miss": "If S20 : Leaves 115 | If T20 → S13 : Leaves 62", "note": "A fantastic alternative. T20 leaves 75, so drop to T13 to establish a highly reliable 36."},
     {"type": "alt", "route": "D25 → T15 → D20", "miss": "If 25 : Leaves 110", "note": "An exhibition/high-margin setup play. Starting on the Bullseye guarantees safety: an Inner Bull leaves 85 (T15 to Tops), while an Outer Bull leaves 110, safely keeping you in the game."}
   ],
+  "135_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 115", "note": "T20 leaves 75, meaning T17 flawlessly drops you onto 24."}],
+  "135_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 115", "note": "Go for 20s."}],
   "134_3": [
     {"type": "best", "route": "T20 → T14 → D16", "miss": "If S20 : Leaves 114 | If T20 → S14 : Leaves 60", "note": "The perfect setup line. T20 leaves 74, so cross over to T14 for 32. If your second dart hits a single 14, you have 60 left, letting you throw a single 20 for Tops."},
     {"type": "alt", "route": "T20 → T18 → D10", "miss": "If S20 : Leaves 114 | If T20 → S18 : Leaves 56", "note": "The standard top-to-bottom rhythm alternative. T20 leaves 74, dropping to T18 for 20. If your second dart hits a single 18, you still have 56 left for a safe 16 to Tops."}
   ],
+  "134_2": [{"type": "setup", "route": "T20 → T14", "miss": "If S20 : Leaves 114", "note": "T20 leaves 74, so cross to T14 to leave a flawless 32."}],
+  "134_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 114", "note": "Smash 20s."}],
   "133_3": [{"type": "best", "route": "T20 → T19 → D8", "miss": "If S20 : Leaves 113 | If T20 → S19 : Leaves 54", "note": "The absolute best route. T20 leaves 73, so drop to T19 to leave 16. If your second dart is a single 19, you have 54 left, giving you a safe 14 to Tops."}],
+  "133_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 113", "note": "T20 leaves 73, letting T19 smoothly set up 16."}],
+  "133_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 113", "note": "Aim at the 20s."}],
   "132_3": [
     {"type": "best", "route": "T20 → T16 → D12", "miss": "If S20 : Leaves 112 | If T20 → S16 : Leaves 56", "note": "The reliable power line. T20 leaves 72, so use T16 to leave 24. If you hit a single 16 on dart two, you have 56 left, stepping down neatly to a single 16 for Tops."},
     {"type": "alt", "route": "D25 → D25 → D16", "miss": "If 25 : Leaves 107 | If D25 → 25 : Leaves 57", "note": "The classic exhibition shot. An inner Bullseye leaves 82, meaning even if your second dart hits the outer Bullseye, you have 57 left for a safe single 17 to Tops."}
   ],
+  "132_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 112", "note": "T20 leaves 72, so T16 elegantly leaves 24."}],
+  "132_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 112", "note": "Hit 20s."}],
   "131_3": [
     {"type": "best", "route": "T20 → T13 → D16", "miss": "If S20 : Leaves 111 | If T20 → S13 : Leaves 58", "note": "The mathematical best setup for 32. T20 leaves 71, so cross over to T13. If your second dart hits a single 13, you have 58 left, which is an easy single 18 to Tops."},
     {"type": "alt", "route": "T19 → T14 → D16", "miss": "If S19 : Leaves 112 | If T19 → S14 : Leaves 60", "note": "An excellent bottom-board flow. T19 leaves 74, letting you stay low on T14 to leave 32. A single 19 first leaves 112."},
     {"type": "alt", "route": "T20 → T17 → D10", "miss": "If S20 : Leaves 111 | If T20 → S17 : Leaves 54", "note": "A top-to-bottom rhythm option. T20 leaves 71, dropping to T17 to leave 20. If your second dart is a single 17, you have 54 left, stepping left to a single 14 for Tops."}
-  ],
+  ],"131_2": [{"type": "setup", "route": "T20 → T13", "miss": "If S20 : Leaves 111", "note": "T20 leaves 71, setting up T13 to perfectly leave 32."}],
+  "131_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 111", "note": "Aim high on the 20s."}],
+
     // 130 TO 91 BLOCK
   "130_3": [
     {"type": "best", "route": "T20 → T18 → D8", "miss": "If S20 : Leaves 110 | If T20 → S18 : Leaves 52", "note": "The primary route to 16, a top-tier double. T20 leaves 70, where T18 gets you your finish. If you hit a single 20 first, you have 110 left, safely setting up T20 to the Bullseye."},
     {"type": "survival", "route": "T20 → T20 → D5", "miss": "If S20 : Leaves 110 | If T20 → S20 : Leaves 50", "note": "A gritty bailout play. T20 leaves 70, so staying for another T20 leaves D5. The drawback is D5 is an ugly odd double, but hitting a single 20 on your second dart guarantees a shot at the Bullseye to save the leg."},
     {"type": "alt", "route": "T20 → 20 → D25", "miss": "If S20 : Leaves 110", "note": "A smart tactical play if you prefer the center ring. T20 leaves 70, so just toss a fat single 20 to guarantee a shot at the Bullseye."}
   ],
+  "130_2": [{"type": "setup", "route": "T20 → 20", "miss": "If S20 : Leaves 110", "note": "T20 leaves 70, meaning a fat 20 perfectly leaves the Bullseye for your next visit."}],
+  "130_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 110", "note": "Aim at the 20s. A single safely leaves 110."}],
   "129_3": [{"type": "best", "route": "T19 → T16 → D12", "miss": "If S19 : Leaves 110 | If T19 → S16 : Leaves 56", "note": "You must start on 19s to survive a single. T19 leaves 72, bringing you down to T16 for 24. A single 19 on your first dart safely leaves 110, giving you a great bailout shot at T20 for the Bullseye."}],
+  "129_2": [{"type": "setup", "route": "T19 → T16", "miss": "If S19 : Leaves 110", "note": "T19 leaves 72, allowing T16 to flawlessly set up 24. A single 19 safely leaves 110."}],
+  "129_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 110", "note": "Aim at the 19s to avoid the single 20 bogey trap. A single 19 nicely leaves 110."}],
   "128_3": [
     {"type": "best", "route": "T18 → T14 → D16", "miss": "If S18 : Leaves 110 | If T18 → S14 : Leaves 60", "note": "You must start on 18s. A single 18 leaves 110, which you can easily finish. If you open on 20s and hit a single, you are trapped on 108 with no out. T18 leaves 74, setting up T14 for 32."},
     {"type": "alt", "route": "T18 → T18 → D10", "miss": "If S18 : Leaves 110 | If T18 → S18 : Leaves 56", "note": "Keeps you locked onto the 18s rhythm. T18 leaves 74, and a second T18 leaves 20. If your second dart is a single 18, you safely leave 56 (16 to Tops)."}
   ],
+  "128_2": [{"type": "setup", "route": "T18 → T14", "miss": "If S18 : Leaves 110", "note": "T18 leaves 74, so T14 perfectly drops you onto 32."}],
+  "128_1": [{"type": "setup", "route": "T18", "miss": "If S18 : Leaves 110", "note": "Hit 18s. A single beautifully leaves 110."}],
   "127_3": [{"type": "best", "route": "T20 → T17 → D8", "miss": "If S20 : Leaves 107 | If T20 → S17 : Leaves 50", "note": "T20 is your only choice. A single 20 leaves 107, keeping you alive. T20 leaves 67, where a single 17 is a perfect miss because it leaves the Bullseye."}],
+  "127_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 107", "note": "T20 leaves 67, setting up T17 to cleanly leave 16."}],
+  "127_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 107", "note": "Go for 20s."}],
   "126_3": [
     {"type": "best", "route": "T19 → T19 → D6", "miss": "If S19 : Leaves 107 | If T19 → S19 : Leaves 50", "note": "Start on 19s to stay alive. A single 19 leaves 107, while a single 20 leaves a dead 106. T19 leaves 69, so stay right there. An accidental single 19 on dart two perfectly leaves the Bullseye."},
     {"type": "alt", "route": "T19 → T15 → D12", "miss": "If S19 : Leaves 107 | If T19 → S15 : Leaves 54", "note": "Use this if you prefer to finish on 24 instead of 12. T19 leaves 69, so slide over to T15. A single 15 on dart two leaves 54, allowing 14 to Tops."}
   ],
+  "126_2": [{"type": "setup", "route": "T19 → 19", "miss": "If S19 : Leaves 107", "note": "T19 leaves 69, so a fat 19 perfectly sets up the Bullseye."}],
+  "126_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 107", "note": "Smash 19s."}],
   "125_3": [
     {"type": "best", "route": "25 → T20 → D20", "miss": "If D25 : Leaves 75 | If 25 → S20 : Leaves 80", "note": "A brilliant move if you like the center. Hitting the outer Bullseye leaves exactly 100, teeing up a classic T20 to Tops. If you accidentally hit the inner Bull, you still have 75 left."},
     {"type": "alt", "route": "T18 → T13 → D16", "miss": "If S18 : Leaves 107 | If T18 → S13 : Leaves 58", "note": "You must start on 18s if you want a treble. T18 leaves 71, dropping cleanly into T13 for 32. A single 18 leaves 107, keeping you in the game."},
     {"type": "alt", "route": "D25 → D25 → D12", "miss": "If 25 : Leaves 100", "note": "The true exhibition power play. An Inner Bull leaves 75. If you hit a second Inner Bull, you leave 25. Since D12 is not 25, you cannot actually finish 125 with three Bullseye throws; this route requires you to pivot."}
   ],
+  "125_2": [{"type": "setup", "route": "T18 → T13", "miss": "If S18 : Leaves 107", "note": "T18 leaves 71, meaning T13 beautifully leaves 32."}],
+  "125_1": [{"type": "setup", "route": "T18", "miss": "If S18 : Leaves 107", "note": "Aim at the 18s."}],
   "124_3": [
     {"type": "best", "route": "T20 → T16 → D8", "miss": "If S20 : Leaves 104 | If T20 → S16 : Leaves 48", "note": "The standard path to 16. T20 leaves 64, letting you shift to T16. If your first dart is a single 20, you have 104 left, cleanly opening up T18 for the Bullseye."},
     {"type": "survival", "route": "T20 → T14 → D11", "miss": "If S20 : Leaves 104 | If T20 → S14 : Leaves 50", "note": "The ultimate pressure bailout. T20 leaves 64. Aiming at 14 forces you onto an ugly D11 if you hit the treble, but a single 14 guarantees you stay alive with a shot at the Bullseye."}
   ],
+  "124_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 104", "note": "T20 leaves 64, letting T16 cleanly leave 16."}],
+  "124_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 104", "note": "Hit 20s."}],
   "123_3": [
     {"type": "best", "route": "T19 → T10 → D18", "miss": "If S19 : Leaves 104 | If T19 → S10 : Leaves 56", "note": "T19 is an absolute must to keep your turn alive. A single 19 leaves 104. If you start on 20s and hit a single, you are stuck on 103 with no out. T19 leaves 66, setting up T10 for 36."},
     {"type": "survival", "route": "T19 → T16 → D9", "miss": "If S19 : Leaves 104 | If T19 → S16 : Leaves 50", "note": "Use this only when your opponent is waiting to win. T19 leaves 66. Aiming 16 risks landing on D9, but a single 16 guarantees a lifeline at the Bullseye."}
   ],
+  "123_2": [{"type": "setup", "route": "T19 → T10", "miss": "If S19 : Leaves 104", "note": "T19 leaves 66, allowing T10 to leave a flawless 36."}],
+  "123_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 104", "note": "Aim high on the 19s."}],
   "122_3": [
     {"type": "best", "route": "T18 → T16 → D10", "miss": "If S18 : Leaves 104 | If T18 → S16 : Leaves 52", "note": "You must start on 18s. A single 18 leaves 104 to keep you alive. T18 leaves 68, so go to T16 to leave 20. A single 16 on your second dart nicely leaves 52, letting you go 12 to Tops."},
     {"type": "survival", "route": "T18 → T18 → D7", "miss": "If S18 : Leaves 104 | If T18 → S18 : Leaves 50", "note": "Pure match survival. T18 leaves 68. Staying on 18 traps you on D7, but a single 18 guarantees a shot at the Bullseye to save the leg."},
     {"type": "alt", "route": "T18 → T20 → D4", "miss": "If S18 : Leaves 104 | If T18 → S20 : Leaves 48", "note": "A good option if you want to push for a double, but shooting at D4 as a primary target drastically limits your safety net on an inside miss."}
   ],
+  "122_2": [{"type": "setup", "route": "T18 → T16", "miss": "If S18 : Leaves 104", "note": "T18 leaves 68, so T16 elegantly leaves 20."}],
+  "122_1": [{"type": "setup", "route": "T18", "miss": "If S18 : Leaves 104", "note": "Pound the 18s."}],
   "121_3": [
     {"type": "best", "route": "T20 → T15 → D8", "miss": "If S20 : Leaves 101 | If T20 → S15 : Leaves 46", "note": "The main setup for 16. T20 leaves 61, crossing down to T15. A single 20 first leaves 101, allowing a direct T17 to the Bullseye to save the turn."},
     {"type": "survival", "route": "T20 → T11 → D14", "miss": "If S20 : Leaves 101 | If T20 → S11 : Leaves 50", "note": "The pressure route. T20 leaves 61. Aiming at 11 leaves you on D14 which breaks down poorly, but a single 11 guarantees a dart at the Bullseye."},
     {"type": "alt", "route": "T17 → T18 → D8", "miss": "If S17 : Leaves 104 | If T17 → S18 : Leaves 52", "note": "Starts you at the bottom of the board. T17 leaves 70, letting you smoothly shift right to T18 for 16. A single 17 safely leaves 104."}
   ],
+  "121_2": [{"type": "setup", "route": "T20 → T15", "miss": "If S20 : Leaves 101", "note": "T20 leaves 61, meaning T15 gracefully leaves 16."}],
+  "121_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 101", "note": "Go for 20s."}],
   "120_3": [{"type": "best", "route": "T20 → 20 → D20", "miss": "If S20 : Leaves 100", "note": "Shanghai. T20 leaves 60, meaning a fat 20 sets up Tops perfectly. A single 20 on dart one leaves a clean 100 for your last two darts."}],
+  "120_2": [{"type": "setup", "route": "T20 → 20", "miss": "If S20 : Leaves 100", "note": "T20 leaves 60, setting up a fat 20 to cleanly leave Tops."}],
+  "120_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 100", "note": "Hit 20s."}],
   "119_3": [
     {"type": "best", "route": "T19 → T10 → D16", "miss": "If S19 : Leaves 100 | If T19 → S10 : Leaves 52", "note": "T19 leaves 62. Drop to T10 to secure 32. If your first dart is a single 19, you gracefully leave exactly 100."},
     {"type": "survival", "route": "T19 → 12 → D25", "miss": "If S19 : Leaves 100 | If T19 → S12 : Leaves 50", "note": "The pressure bailout. T19 leaves 62. Aiming at 12 forces you onto a dead-end D13 if you hit the treble, but a single 12 guarantees a shot at the Bullseye to save the leg."}
   ],
+  "119_2": [{"type": "setup", "route": "T19 → T10", "miss": "If S19 : Leaves 100", "note": "T19 leaves 62, letting T10 perfectly leave 32."}],
+  "119_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 100", "note": "Smash 19s."}],
   "118_3": [
     {"type": "best", "route": "T20 → 18 → D20", "miss": "If S20 : Leaves 98 | If T20 → T18 : Leaves 4", "note": "The Ken Berman power play. T20 leaves 58, meaning a fat 18 guarantees a double attempt, and an accidental treble leaves D2. A single 20 first leaves 98, forcing you to shoot for D19, but sacrificing dart 1 safety for dart 2 equity is worth the risk."},
     {"type": "alt", "route": "T18 → T16 → D8", "miss": "If S18 : Leaves 100", "note": "John Lowe's traditional route. A single 18 gracefully leaves 100, but if you hit T18 (64 left), you have zero fat-bed safety on your second dart because aiming 14 for the Bull risks the D11 trap."}
   ],
+  "118_2": [{"type": "setup", "route": "T20 → 18", "miss": "If S20 : Leaves 98", "note": "T20 leaves 58, meaning a fat 18 sets up exactly 40 for your next visit."}],
+  "118_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 98", "note": "Aim at the 20s."}],
   "117_3": [{"type": "best", "route": "T20 → 17 → D20", "miss": "If S20 : Leaves 97 | If T20 → T17 : Leaves 6", "note": "T20 leaves 57. A single 17 leaves Tops, and a stray T17 safely leaves D3. A single 20 first leaves 97."}],
+  "117_2": [{"type": "setup", "route": "T20 → 17", "miss": "If S20 : Leaves 97", "note": "T20 leaves 57, allowing a fat 17 to beautifully leave 40."}],
+  "117_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 97", "note": "Hit 20s."}],
   "116_3": [
     {"type": "best", "route": "T20 → 16 → D20", "miss": "If S20 : Leaves 96 | If T20 → T16 : Leaves 8", "note": "The best top-board sequence. T20 leaves 56, so you just hit a single 16 for Tops. An accidental T16 safely leaves D4. A single 20 first leaves 96."},
     {"type": "alt", "route": "T19 → 19 → D20", "miss": "If S19 : Leaves 97 | If T19 → T19 : Leaves 2", "note": "A great bottom-board rhythm play. T19 leaves 59, letting you stay right there for a single 19 to Tops. A first dart single 19 safely leaves 97."}
   ],
+  "116_2": [{"type": "setup", "route": "T20 → 16", "miss": "If S20 : Leaves 96", "note": "T20 leaves 56, so a simple 16 perfectly sets up Tops."}],
+  "116_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 96", "note": "Aim high on the 20s."}],
   "115_3": [
     {"type": "best", "route": "T19 → 18 → D20", "miss": "If S19 : Leaves 96 | If T19 → T18 : Leaves 4", "note": "A highly robust path. T19 leaves 58, setting up a safe 18 for Tops with built-in treble safety. If your first dart drops into a single 19, you leave 96, keeping you totally out of odd numbers."},
     {"type": "avoid", "route": "T20 → 15 → D20", "miss": "If S20 : Leaves 95 | If T20 → T15 : Leaves 10", "note": "A nasty trap. T20 leaves 55, forcing an odd single 15. Worse, a single 20 first leaves 95, which forces you to shoot for an ugly double 19."}
   ],
+  "115_2": [{"type": "setup", "route": "T19 → 18", "miss": "If S19 : Leaves 96", "note": "T19 leaves 58, setting up a fat 18 to leave 40."}],
+  "115_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 96", "note": "Pound the 19s to avoid the S20 bogey math."}],
   "114_3": [{"type": "best", "route": "T20 → 14 → D20", "miss": "If S20 : Leaves 94 | If T20 → T14 : Leaves 12", "note": "The optimal setup for Tops. T20 leaves 54, so you just move horizontally to a single 14. A single 20 first leaves 94."}],
+  "114_2": [{"type": "setup", "route": "T20 → 14", "miss": "If S20 : Leaves 94", "note": "T20 leaves 54, meaning a fat 14 gracefully leaves 40."}],
+  "114_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 94", "note": "Go for 20s."}],
   "113_3": [
     {"type": "best", "route": "T20 → 13 → D20", "miss": "If S20 : Leaves 93 | If T20 → T13 : Leaves 14", "note": "The primary route. T20 leaves 53, setting up a single 13 to Tops. A single 20 first leaves 93."},
     {"type": "alt", "route": "T19 → 16 → D20", "miss": "If S19 : Leaves 94 | If T19 → T16 : Leaves 8", "note": "A solid bottom-board alternative. T19 leaves 56, letting you use a fat 16 for Tops. A single 19 first leaves 94."}
-],
+  ],
+  "113_2": [{"type": "setup", "route": "T20 → 13", "miss": "If S20 : Leaves 93", "note": "T20 leaves 53, meaning a fat 13 beautifully leaves 40."}],
+  "113_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 94", "note": "Hit 19s. A single securely leaves 94, whereas a single 20 traps you on 93."}],
   "112_3": [
     {"type": "best", "route": "T20 → 12 → D20", "miss": "If S20 : Leaves 92 | If T20 → T12 : Leaves 16", "note": "The smartest path. T20 leaves 52. A single 12 leaves Tops, and a T12 perfectly leaves D8 for maximum safety."},
     {"type": "alt", "route": "T18 → 18 → D20", "miss": "If S18 : Leaves 94 | If T18 → T18 : Leaves 4", "note": "Keeps you locked on the 18s. T18 leaves 58. A fat 18 leaves Tops, and an accidental T18 safely leaves D2 without busting."},
     {"type": "alt", "route": "T20 → 20 → D16", "miss": "If S20 : Leaves 92", "note": "A comfortable rhythm play, but be careful—an accidental T20 on your second dart busts the 52."}
   ],
+  "112_2": [{"type": "setup", "route": "T20 → 12", "miss": "If S20 : Leaves 92", "note": "T20 leaves 52, so a fat 12 flawlessly leaves Tops."}],
+  "112_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 92", "note": "Smash 20s."}],
   "111_3": [
     {"type": "best", "route": "T19 → 14 → D20", "miss": "If S19 : Leaves 92 | If T19 → T14 : Leaves 12", "note": "A highly robust baseline. T19 leaves 54. A fat 14 leaves Tops, and an accidental T14 nicely leaves D6. A single 19 first leaves 92."},
     {"type": "alt", "route": "T20 → 11 → D20", "miss": "If S20 : Leaves 91 | If T20 → T11 : Leaves 18", "note": "The main top-board entry. T20 leaves 51. A fat 11 leaves Tops, but an accidental T11 forces a tricky D9. A single 20 first leaves 91."}
   ],
+  "111_2": [{"type": "setup", "route": "T19 → 14", "miss": "If S19 : Leaves 92", "note": "T19 leaves 54, setting up a fat 14 to cleanly leave 40."}],
+  "111_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 92", "note": "Aim at the 19s to safely drop into a clean 3-dart checkout range."}],
   "110_3": [
     {"type": "best", "route": "T20 → 10 → D20", "miss": "If S20 : Leaves 90", "note": "The safest top-board play. T20 leaves 50. A fat 10 leaves Tops, and an accidental T10 safely leaves D10. A single 20 first leaves 90, which is easily rescued."},
     {"type": "avoid", "route": "T20 → 18 → D16", "miss": "If S20 : Leaves 90", "note": "A massive bust trap. T20 leaves 50. If you aim at 18 and accidentally hit the treble, you score 54 and instantly bust your turn."}

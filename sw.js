@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dart-advisor-v1.0.3';
+const CACHE_NAME = 'dart-advisor-v2.0.0';
 const ASSETS = [
   './',
   './index.html',
