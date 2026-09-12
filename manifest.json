@@ -1,7 +1,7 @@
 {
-  "name": "Dart Advisor | Parity & Recovery",
+  "name": "Dart Advisor | Match Play Tactics",
   "short_name": "DartAdvisor",
-  "description": "Tactical darts checkout and error recovery calculator",
+  "description": "Tactical darts checkout calculator",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -19,7 +19,7 @@
       "src": "dartboard-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ]
 }
