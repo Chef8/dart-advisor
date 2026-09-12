@@ -34,10 +34,15 @@ Standard pub charts leave players stranded when an aimed treble catches a fat si
 2. **Smart Subtraction:** To deduct a throw, press a multiplier followed by the number. Pressing **T** then **20** automatically builds `- T20` in your history log, calculates the deduction, and decrements your dart count.
 3. Review primary and secondary recommendation cards. Tap **Tactical Details ▾** to view error-branch recovery trees and mechanics.
 
-### Voice Input (Hands-Free at the Oche)
-1. Tap the **🎙 Voice** button.
-2. **Set a Starting Score:** Speak your count and score naturally (e.g., *"82 with 3 darts"* or *"1 dart, 55"*).
-3. **Continuous Match Play:** Once a score is active, simply speak what you hit. Saying *"Trip 20"*, *"Minus 18"*, or *"Bullseye"* will automatically subtract the value, drop your dart count, display the math history, and read the next optimal route aloud.
+### Voice Input (Tap-to-Talk)
+1. Tap the **🎙 Voice** button to open the audio session.
+2. **Set a Starting Score:** Speak your count and score naturally (e.g., *"82 with 3 darts"* or *"1 dart, 55"*). The microphone automatically closes after you speak.
+3. **Log a Throw:** Tap the **🎙 Voice** button again and speak what you hit (e.g., *"Trip 20"*, *"Minus 18"*, or *"Bullseye"*). The app instantly subtracts the value, drops your dart count, and reads the next optimal route aloud before releasing the microphone.
+
+### Custom Routes & Data Backup
+* **Edit the Database:** Tap "+ Add Custom Route" or the "Edit" button on any active card to grade, map, and add tactical notes for your preferred setups.
+* **Local Storage:** Custom routes are saved strictly to your device's browser memory. 
+* **Backup / Restore:** Uninstalling the PWA or clearing your browser cache will permanently destroy your custom routes. Use the **💾 Backup Routes** button to download a JSON save file, which can be reloaded using the **📂 Restore** button on any device.
 
 ### Error Correction & History
 * **Math Trail:** The display splits to show your active calculation (e.g., `110 - T20`) above your main score so you never lose track of a visit.
@@ -58,7 +63,7 @@ Once saved, it launches in full screen without browser toolbars and functions fl
 
 ## License & Intellectual Property
 
-Copyright (c) 2026 John Phillip Amarante. All rights reserved.
+Copyright (c) 2026 John Amarante. All rights reserved.
 
-- **Master Database & Tactical Content:** All written tactical notes, strategic recovery trees, and curated schemas are authored by John Phillip Amarante and licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+- **Master Database & Tactical Content:** All written tactical notes, strategic recovery trees, and curated schemas are authored by John Amarante and licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 - **Application Engine Source Code:** Free for personal, non-commercial, and educational oche practice. Commercial redistribution, white-labeling, scraping, or embedding into monetized scoring platforms without prior written authorization is strictly prohibited.

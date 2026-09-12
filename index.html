@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- =======================================================================
   Dart Out & Setup Advisor | Match Play Tactics
-  Copyright (c) 2026 John Phillip Amarante. All rights reserved.
+  Copyright (c) 2026 John Amarante. All rights reserved.
   
   - Software & Engine: Free for personal, non-commercial use only.
   - Tactical Notes & Database Content: Licensed under CC BY-NC-SA 4.0.
@@ -26,12 +26,19 @@
   <!-- APP VERSION CONTROL -->
   <script>
   // Update this string to change the version in the About modal
-  const APP_VERSION = "v2.0.1";
-  
+  const APP_VERSION = "v3.0.0";
+
   document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("app-version").textContent = APP_VERSION;
+    // Read the active database (either from localStorage or defaultDb)
+    const db = getDb();
+    
+    // Extract version if it exists, otherwise flag it as modified/unknown
+    const dbVersion = (db._metadata && db._metadata.dbVersion) ? db._metadata.dbVersion : "Custom";
+    
+    // Update the UI
+    document.getElementById("app-version").textContent = `App: ${APP_VERSION} | DB: ${dbVersion}`;
   });
-  </script>
+</script>
 
   <style>
     :root {
@@ -71,16 +78,6 @@
     .dart-btn { flex: 1; padding: 10px 0; font-size: 0.95rem; font-weight: 600; background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; }
     .dart-btn.active { background: #1f6feb; border-color: var(--accent); color: #fff; }
 
-    /* Display Row with Integrated Voice Action */
-    <div class="display-row">
-      <div class="score-wrapper">
-        <div class="math-history" id="mathHistory"></div>
-        <div class="main-score" id="mainScore">—</div>
-      </div>
-      <button id="btnVoice" class="mic-btn" type="button" title="Voice Input (e.g. '2 darts, 76')">
-        <span id="micIcon">🎙</span> <span id="micLabel">Voice</span>
-      </button>
-    </div>
     .score-wrapper { display: flex; flex-direction: column; justify-content: center; }
     .math-history { 
       font-size: 0.85rem; 
@@ -299,9 +296,16 @@
 
 <div class="action-bar" id="actionBar" style="display:none;">
   <span class="utility-link" onclick="openAddModal()">+ Add Custom Route for this Score</span>
-  <span class="utility-link" onclick="resetToDefaults()">Reset Defaults</span>
+  <span class="utility-link" onclick="exportData()">💾 Backup Routes</span>
+  <label class="utility-link" style="cursor:pointer;">
+    📂 Restore
+    <input type="file" accept=".json" style="display:none;" onchange="importData(event)">
+  </label>
+  <span class="utility-link" style="color: var(--avoid);" onclick="resetToDefaults()">Reset Defaults</span>
 </div>
-<div id="app-version" class="version-badge"></div>
+<p style="font-size: 0.75rem; color: var(--survival); text-align: center; margin-top: 12px;">
+  <strong>Note:</strong> Uninstalling the app or clearing your cache permanently deletes custom routes.
+</p>
 
 <!-- Accessible About Modal -->
 <div id="about-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="about-title" hidden>
@@ -352,7 +356,10 @@
           <strong>Smart Keypad:</strong> To deduct a throw, simply press a multiplier followed by the number. Pressing <strong>T</strong> then <strong>20</strong> automatically builds the equation (`- T20`), calculates the deduction, and drops your dart count.
         </li>
         <li>
-          <strong>Continuous Voice Play:</strong> Tap <strong>🎙 Voice</strong> and say a starting score (e.g., "82 with 3 darts"). Once a score is active, just speak your throw (e.g., "Trip 20" or "Bullseye"). The app automatically deducts the value and reads your next optimal route aloud.
+          <strong>Tap-to-Talk Voice:</strong> Tap <strong>🎙 Voice</strong> before you speak (e.g., "82 with 3 darts", or "Trip 20"). The app automatically deducts the value, reads your next optimal route aloud, and safely closes the mic to preserve battery.
+        </li>
+        <li>
+          <strong>Custom Routes & Backups:</strong> Click "Edit" on any route to modify the database. Because these routes save strictly to your local device, you must use the <strong>Backup Routes</strong> button to save your playbook before clearing your browser cache or switching phones.
         </li>
         <li>
           <strong>Undo & Math History:</strong> The display splits to show your live math trail above your main score. If a voice command is misheard or you make a typo, tap <strong>↶ Undo</strong> to instantly revert your score and dart count to the exact previous state.
@@ -378,16 +385,18 @@
         <strong>iPhone Users:</strong> Open in Safari, tap Share, and select <strong>"Add to Home Screen"</strong> for voice access.
       </p>
     </div>
-    <section class="modal-footer-note" style="border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem;">
+<section class="modal-footer-note" style="border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem;">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
         <p style="font-size: 0.78rem; line-height: 1.4; color: var(--text-muted); margin: 0; flex: 1;">
-          <strong>License &amp; Terms:</strong> Tactical notes, strategic recovery trees, and curated schemas are authored by John Phillip Amarante. 
+          <strong>License &amp; Terms:</strong> Tactical notes, strategic recovery trees, and curated schemas are authored by John Amarante. 
           Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: underline;">CC BY-NC-SA 4.0</a>. Free for personal, non-commercial oche practice.
         </p>
         <a href="https://forms.gle/4J44Djt43zVCsyQm9" target="_blank" rel="noopener" style="background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-decoration: none; white-space: nowrap; transition: border-color 0.2s;">
           📝 Send Feedback
         </a>
       </div>
+      <!-- Version Badge Placement -->
+      <div id="app-version" class="version-badge" style="margin-top: 1rem; text-align: left; opacity: 0.7;"></div>
     </section>
     </div>
   </div>
@@ -398,6 +407,12 @@
   <div class="modal-content">
     <h3 style="margin-top:0;" id="formTitle">Edit Route</h3>
     <input type="hidden" id="editIndex" value="-1">
+    
+    <!-- DATA LOSS WARNING -->
+    <div style="background: var(--avoid-bg); border-left: 3px solid var(--avoid); padding: 8px 10px; margin-bottom: 12px; border-radius: 4px; font-size: 0.75rem; color: #f0f6fc; line-height: 1.4;">
+      <strong>⚠️ Storage Warning:</strong> Custom routes are saved only to this device. <strong>Uninstalling the app</strong> or <strong>clearing your browser cache</strong> will permanently wipe them. Remember to use the <strong>Backup Routes</strong> button on the main screen!
+    </div>
+
     <div class="form-group">
       <label>Quality Grade</label>
       <select id="formTier">
@@ -421,6 +436,9 @@
   </div>
 </div>
 
+<!-- Load the database FIRST -->
+<script src="./dart-advisor-db.js"></script>
+
 <script>
 
 /* =========================================================================
@@ -432,8 +450,16 @@ let dartsInHand = 3;
 let scoreHistory = []; // Timeline stack for Undo
 
 function getDb() { 
-  const local = localStorage.getItem("dart_tactical_hybrid_v3"); 
-  return local ? JSON.parse(local) : defaultDb; 
+  try {
+    const local = localStorage.getItem("dart_tactical_hybrid_v3"); 
+    if (local) return JSON.parse(local);
+    
+    // Safely check if database.js loaded successfully. If not, return an empty object to prevent a crash.
+    return typeof defaultDb !== 'undefined' ? defaultDb : {}; 
+  } catch (e) {
+    console.error("Database load error. Falling back to dynamic engine.", e);
+    return {};
+  }
 }
 function saveDb(db) { localStorage.setItem("dart_tactical_hybrid_v3", JSON.stringify(db)); }
 function setDarts(n) { 
@@ -563,6 +589,7 @@ const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
 const btnVoice = document.getElementById('btnVoice');
 const micLabel = document.getElementById('micLabel');
 let recognition = null;
+let isListening = false; // Used for background safety
 
 if (SpeechRec) {
   recognition = new SpeechRec();
@@ -571,16 +598,19 @@ if (SpeechRec) {
   recognition.lang = 'en-US';
 
   recognition.onstart = () => {
+    isListening = true;
     btnVoice.classList.add('listening');
     micLabel.innerText = "Listening...";
   };
 
   recognition.onend = () => {
+    isListening = false;
     btnVoice.classList.remove('listening');
     micLabel.innerText = "Voice";
   };
 
   recognition.onerror = () => {
+    isListening = false;
     btnVoice.classList.remove('listening');
     micLabel.innerText = "Voice";
   };
@@ -591,6 +621,7 @@ if (SpeechRec) {
     parseDartsVoice(transcript);
   };
 
+  // Your original working toggle logic
   btnVoice.addEventListener('click', () => {
     try { recognition.start(); } catch(e) { recognition.stop(); }
   });
@@ -601,6 +632,16 @@ if (SpeechRec) {
     if (simulatedSpeech) parseDartsVoice(simulatedSpeech.toLowerCase());
   });
 }
+
+// OS Background Safety Net: Instantly releases mic if app is swiped away
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    if (isListening && recognition) {
+      try { recognition.stop(); } catch(e) {}
+    }
+    window.speechSynthesis.cancel(); // Kills audio output so it doesn't talk while locked
+  }
+});
 
 function parseDartsVoice(text) {
   let norm = text.toLowerCase();
@@ -658,7 +699,7 @@ function parseDartsVoice(text) {
     }
   }
 
-  // Intelligent Context: Any number spoken while a score is active defaults to subtracting
+  // Intelligent Context
   if (!isDeduction && currentScore !== "") {
      if (!dCount) {
        isDeduction = true;
@@ -682,7 +723,7 @@ function parseDartsVoice(text) {
       currentScore = scoreVal.toString();
       mathLog = ""; 
       setDarts(dCount || 3);
-      pushState(); // Save absolute voice input to Undo timeline
+      pushState(); 
       updateScoreDisplay();
       speakRecommendation(`${currentScore}_${dartsInHand}`);
     }
@@ -700,13 +741,11 @@ function speakRecommendation(key) {
   const db = getDb();
   let routeText = "";
 
-  // 1. Check custom or default database entries first
   const entries = db[key];
   if (entries && entries.length > 0) {
     const topRoute = entries.find(e => e.type === 'best') || entries[0];
     routeText = topRoute.route;
   } else {
-    // 2. Fall back to dynamic engine calculations if not hardcoded in DB
     const calc = computeEngineOut(score, darts);
     if (calc) {
       routeText = calc.route;
@@ -1048,6 +1087,44 @@ function deleteCurrentRoute() {
 }
 function resetToDefaults() { if (confirm("Reset to factory defaults?")) { localStorage.removeItem("dart_tactical_hybrid_v3"); renderDisplay(); } }
 
+function exportData() {
+  const localData = localStorage.getItem("dart_tactical_hybrid_v3");
+  if (!localData) {
+    alert("No custom data to backup. You are using the default database.");
+    return;
+  }
+  
+  const blob = new Blob([localData], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `DartAdvisor_Backup_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const importedDb = JSON.parse(e.target.result);
+      localStorage.setItem("dart_tactical_hybrid_v3", JSON.stringify(importedDb));
+      alert("Routes successfully restored!");
+      renderDisplay(); 
+    } catch (err) {
+      alert("Error reading backup file. Please ensure it is a valid JSON backup.");
+    }
+    event.target.value = ''; // Reset file input
+  };
+  reader.readAsText(file);
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch((err) => {
@@ -1055,1036 +1132,6 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
-
-/* =========================================================================
-   6. MASTER DICTIONARY DATASTORE (170 TO 2) - AUDITED MODERN BASELINE
-   ========================================================================= */
-const defaultDb = {
-  // 170 TO 131 BLOCK
-  "170_3": [{"type": "best", "route": "T20 → T20 → D25", "miss": "If S20 : Leaves 150 | If T20 → S20 : Leaves 90", "note": "The Big Fish. You need two perfect trebles to earn a shot at the Bullseye. A single 20 early means you are strictly setting up for your next turn."}],
-  "170_2": [{"type": "setup", "route": "T20 → T20", "miss": "If S20 : Leaves 130", "note": "Power scoring. You cannot check this out, so smash the 20s to leave a perfect 50 for your next visit."}],
-  "170_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 150", "note": "One dart left, just aim at 20 to set up a clean 3-dart finish next turn."}],"169_3": [
-    {"type": "setup", "route": "T20 → T20 → S9", "miss": "If S20 : Leaves 149 | If T9 : Leaves 22", "note": "You can't finish 169. Two T20s leave 49. Use your last dart on a single 9 to leave exactly Tops for your next turn. If you drift into T9, you safely leave 22."},
-    {"type": "avoid", "route": "T20 → T20 → S17", "miss": "If T17 : Bust", "note": "A massive trap. Aiming at 17 from 49 might look good to leave 32, but an accidental T17 busts your turn entirely."}
-  ],
-  "169_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 129", "note": "A curated setup. T20 leaves 109, allowing you to drop to T19 to leave 52, meaning a simple 12 leaves Tops next visit."}],
-  "169_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 149", "note": "Fire at 20s. A single leaves 149, safely keeping you out of bogey numbers."}],
-  "168_3": [
-    {"type": "setup", "route": "T20 → T20 → S8", "miss": "If S20 : Leaves 148 | If T8 : Leaves 24", "note": "No checkout available. Hit two T20s to leave 48, then pop a single 8 to set up Tops. An accidental T8 safely leaves 24."},
-    {"type": "avoid", "route": "T20 → T20 → S16", "miss": "If T16 : Bust", "note": "Never go for 16 from 48. If you accidentally hit T16, you score exactly 48 without hitting a double and bust your visit."}
-  ],
-  "168_2": [{"type": "setup", "route": "T20 → T20", "miss": "If S20 : Leaves 128", "note": "Max scoring leaves 48. This guarantees an elite single 8 to Tops route for your next trip to the board."}],
-  "168_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 148", "note": "Smash the 20s to chip away at the total and set up a safe finish."}],
-  "167_3": [
-    {"type": "best", "route": "T20 → T19 → D25", "miss": "If S20 : Leaves 147 | If T20 → S19 : T16", "note": "The pro standard. T20 leaves 107, allowing you to drop to T19 for the Bullseye. If your second dart drops into a single 19, you have 88 left. Fire at T16 to leave Tops."},
-    {"type": "alt", "route": "T19 → T20 → D25", "miss": "If S19 : Leaves 148 | If T19 → S20 : 25", "note": "A great choice if you prefer staying low first. A single 19 on your first dart leaves 148, keeping the standard T20 to T16 path open for a 32 finish."}
-  ],
-  "167_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 127", "note": "T20 leaves 107, so switch to T19 to cleanly leave 50 for a Bullseye pivot next turn."}],
-  "167_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 147", "note": "Hit the 20s to secure a reliable 3-dart checkout range."}],
-  "166_3": [
-    {"type": "setup", "route": "T20 → T20 → S14", "miss": "If S20 : Leaves 146 | If T14 : Leaves 4", "note": "No finish here. Two T20s leave 46. Toss your last dart at 14 to leave 32. If you accidentally snag T14, you leave 4 and stay alive."},
-    {"type": "alt", "route": "T20 → T20 → S6", "miss": "If T6 : Leaves 28", "note": "If you prefer Tops over 32, use 6 instead of 14 for your setup dart. An accidental T6 safely leaves 28."}
-  ],
-  "166_2": [{"type": "setup", "route": "T20 → T18", "miss": "If S20 : Leaves 126", "note": "T20 leaves 106, allowing a drop to T18 to leave 52, seamlessly setting up 12 to Tops."}],
-  "166_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 146", "note": "Aim high on 20s to drastically reduce the massive score."}],
-  "165_3": [
-    {"type": "setup", "route": "T20 → T20 → S13", "miss": "If S20 : Leaves 145 | If T13 : Leaves 6", "note": "You can't check this out. Two T20s leave 45. Hit a single 13 to leave a perfect 32. If you pull it into T13, you leave 6. Safe and smart."},
-    {"type": "alt", "route": "T20 → T20 → S5", "miss": "If T5 : Leaves 30", "note": "Keeps you throwing at the top of the board. A single 5 from 45 leaves Tops, and a stray T5 leaves you on 30."}
-  ],
-  "165_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 125", "note": "Do not hit two T20s and leave 45. T20 leaves 105, meaning T17 perfectly leaves 54 for a single 14 to Tops route."}],
-  "165_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 146", "note": "An elite tactical play. Do not aim 20s and risk leaving 105. T19 perfectly leaves 108, securing a pristine T20 route next visit."}],
-  "164_3": [
-    {"type": "best", "route": "T20 → T18 → D25", "miss": "If S20 : Leaves 144 | If T20 → S18 : T18", "note": "The main tour route. T20 leaves 104, so slide to T18 for the Bullseye. If you hit a single 18 on dart two, you are on 86, meaning you stay right there on 18s to leave 32."},
-    {"type": "alt", "route": "T19 → T19 → D25", "miss": "If S19 : Leaves 145 | If T19 → S19 : T16", "note": "Locks your first two darts into the exact same target. If dart two hits a single 19, you have 88 left to clean up with T16 for Tops."}
-  ],
-  "164_2": [{"type": "setup", "route": "T20 → T18", "miss": "If S20 : Leaves 124", "note": "T20 leaves 104, so switch to T18 to leave a flawless 50."}],
-  "164_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 144", "note": "Go for 20s to leave 144 on a single hit."}],
-  "163_3": [
-    {"type": "setup", "route": "T20 → T20 → S11", "miss": "If S20 : Leaves 143 | If T11 : Leaves 10", "note": "No checkout available. After two T20s, you have 43. Aiming 11 cleanly leaves 32, and an accidental T11 just leaves 10."},
-    {"type": "alt", "route": "T20 → T20 → S3", "miss": "If T3 : Leaves 34", "note": "Drops straight down the middle. From 43, hit a single 3 for Tops. A bad T3 leaves 34."}
-  ],
-  "163_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 123", "note": "T20 leaves 103, meaning a clean T19 leaves 46, teeing up a simple 14 to 32."}],
-  "163_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 143", "note": "Hit the 20s to drop below 150."}],
-  "162_3": [
-    {"type": "setup", "route": "T20 → T20 → S10", "miss": "If S20 : Leaves 142 | If T10 : Leaves 12", "note": "Can't finish this in three. Hit your T20s to leave 42, then use a single 10 to leave 32. If you hit T10 by mistake, you still have 12 left."},
-    {"type": "alt", "route": "T20 → T20 → S2", "miss": "If T2 : Leaves 36", "note": "A simple Tops setup. From 42, hit a single 2 to leave 40. An accidental T2 leaves a very nice 36 for your next turn."}
-  ],
-  "162_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 122", "note": "T20 leaves 102. A solid T16 leaves 54, so you can easily run 14 to Tops next time."}],
-  "162_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 142", "note": "Smash 20s to ensure a comfortable setup."}],
-  "161_3": [
-    {"type": "best", "route": "T20 → T17 → D25", "miss": "If S20 : Leaves 141 | If T20 → S17 : T16", "note": "The classic finish. T20 leaves 101, then drop down to T17 for the Bullseye. If you hit a single 17 on dart two, you are at 84, meaning a T16 leaves 36."},
-    {"type": "alt", "route": "T19 → T18 → D25", "miss": "If S19 : Leaves 142 | If T19 → S18 : T18", "note": "Keeps both setup darts near the bottom of the board. If your second dart is a single 18, you have 86 left and can just hit T18 to leave 32."}
-  ],
-  "161_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 121", "note": "T20 leaves 101, letting you use T17 to leave exactly 50."}],
-  "161_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 141", "note": "Aim high on the 20s."}],
-  "160_3": [{"type": "best", "route": "T20 → T20 → D20", "miss": "If S20 : Leaves 140 | If T20 → S20 : Leaves 80", "note": "The classic three-dart out. You must hit two T20s to earn a shot at Tops. A single 20 anywhere kills the checkout, forcing you into a setup role."}],
-  "160_2": [{"type": "setup", "route": "T20 → T20", "miss": "If S20 : Leaves 120", "note": "Pound the 20s. Two trebles gracefully leave 40 for your next visit."}],
-  "160_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 140", "note": "Hit 20s. A single leaves 140, setting up a standard T20 route."}],
-  "159_3": [{"type": "setup", "route": "T20 → T20 → S7", "miss": "If S20 : Leaves 139 | If T7 : Leaves 18", "note": "No finish here. After two T20s leave 39, hit a single 7 to set up 32 for next time. An accidental T7 safely leaves 18."}],
-  "159_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 119", "note": "T20 leaves 99, opening up T19 to leave exactly 42, giving you a clean 10 to 32 path."}],
-  "159_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 139", "note": "Hit 20s. A single safely drops you to 139."}],
-  "158_3": [
-    {"type": "best", "route": "T20 → T20 → D19", "miss": "If S20 : Leaves 138 | If T20 → S20 : T18", "note": "Forces you into an odd double, but staying on the 20s is standard. If you hit a single 20 first, you have 138 left, which you fix with T20 to T18 for 24."},
-    {"type": "alt", "route": "T20 → T16 → D25", "miss": "If T20 → S16 : T14", "note": "Use this if you absolutely hate D19. From 98, shifting down to T16 lines up a Bullseye finish instead."}
-  ],
-  "158_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 118", "note": "T20 leaves 98, setting up a shift to T16 to perfectly leave 50."}],
-  "158_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 138", "note": "Fire at 20s."}],
-  "157_3": [{"type": "best", "route": "T20 → T19 → D20", "miss": "If S20 : Leaves 137 | If T20 → S19 : T20", "note": "The main path to Tops. T20 leaves 97, setting up a drop to T19. If your first dart is a single 20, you are on 137. Hit T20 then T19 to leave 20."}],
-  "157_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 117", "note": "T20 leaves 97, so cross to T19 to flawlessly leave 40."}],
-  "157_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 137", "note": "Go for 20s."}],
-  "156_3": [{"type": "best", "route": "T20 → T20 → D18", "miss": "If S20 : Leaves 136 | If T20 → S20 : T20", "note": "The pro standard. Back-to-back T20s leave a perfect 36. A single 20 first leaves 136, so you just need two T20s to salvage 16."}],
-  "156_2": [{"type": "setup", "route": "T20 → T20", "miss": "If S20 : Leaves 116", "note": "Pound the 20s to leave a perfectly pristine 36."}],
-  "156_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 136", "note": "Hit 20s."}],
-  "155_3": [
-    {"type": "best", "route": "T20 → T19 → D19", "miss": "If S20 : Leaves 135 | If T20 → S19 : T20", "note": "The standard route to an odd double. T20 leaves 95, so drop to T19 for the out. A single 20 first leaves 135, forcing T20 to T17 to leave 24."},
-    {"type": "alt", "route": "T20 → T15 → D25", "miss": "If T20 → S15 : T20", "note": "Go this way to avoid D19. After your first T20, shifting to T15 leaves 50 for the Bullseye."}
-  ],
-  "155_2": [{"type": "setup", "route": "T20 → T15", "miss": "If S20 : Leaves 115", "note": "T20 leaves 95, meaning T15 gracefully leaves 50."}],
-  "155_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 135", "note": "Aim at the 20s."}],
-  "154_3": [
-    {"type": "best", "route": "T20 → T18 → D20", "miss": "If S20 : Leaves 134 | If T20 → S18 : T20", "note": "The direct path to Tops. T20 leaves 94, so switch to T18. A single 20 first leaves 134, keeping you in the game with T20 to T14 to leave 20."},
-    {"type": "alt", "route": "T19 → T19 → D20", "miss": "If S19 : Leaves 135 | If T19 → S19 : T18", "note": "Locks you into a single target rhythm. T19 leaves 97, and another T19 leaves Tops. If your first dart is a fat 19, you have 135 left, pivoting to 25 then T20 to leave Tops."}
-  ],
-  "154_2": [{"type": "setup", "route": "T20 → T18", "miss": "If S20 : Leaves 114", "note": "T20 leaves 94, allowing T18 to leave a flawless 40."}],
-  "154_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 134", "note": "Smash 20s."}],
-  "153_3": [{"type": "best", "route": "T20 → T19 → D18", "miss": "If S20 : Leaves 133 | If T20 → S19 : T20", "note": "Sets up a highly reliable 36. T20 leaves 93, sliding nicely into T19. A single 20 first leaves 133, so you just stay on that T20 to T19 path to leave 16."}],
-  "153_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 113", "note": "T20 leaves 93, letting T19 cleanly set up 36."}],
-  "153_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 133", "note": "Aim high on the 20s."}],
-  "152_3": [{"type": "best", "route": "T20 → T20 → D16", "miss": "If S20 : Leaves 132 | If T20 → S20 : T20", "note": "The perfect setup. Two T20s cleanly leave 32. If your first dart is a single 20, you have 132 left, meaning you just hit two more T20s to leave 12."}],
-  "152_2": [{"type": "setup", "route": "T20 → T20", "miss": "If S20 : Leaves 112", "note": "Pound the 20s to leave a pristine 32."}],
-  "152_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 132", "note": "Go for 20s."}],
-  "151_3": [{"type": "best", "route": "T20 → T17 → D20", "miss": "If S20 : Leaves 131 | If T20 → S17 : T14", "note": "The primary Tops route. T20 leaves 91, so drop to T17. A single 20 first leaves 131, meaning you can pivot to T20 then T13 for 32."}],
-  "151_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 111", "note": "T20 leaves 91, meaning T17 perfectly leaves 40."}],
-  "151_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 131", "note": "Hit 20s."}],
-  "150_3": [
-    {"type": "best", "route": "T20 → T18 → D18", "miss": "If S20 : Leaves 130 | If T20 → S18 : T16", "note": "The classic pro path. T20 leaves 90, setting up T18 for a clean 36. If you hit a single 20 first, you're at 130, meaning you can pivot to T20 for the Bullseye."},
-    {"type": "alt", "route": "D25 → T20 → D20", "miss": "If 25 : Leaves 125 | If D25 → S20 : T10", "note": "A flashy route. The Bullseye option isn't recommended if your opponent is sitting on a finish, but if there's no pressure, hitting the outer 25 leaves 125, giving you a very high percentage to clean up on your next turn."}
-  ],
-  "150_2": [{"type": "setup", "route": "T20 → T18", "miss": "If S20 : Leaves 130", "note": "T20 leaves 90, meaning T18 flawlessly leaves 36."}],
-  "150_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 130", "note": "Aim at the 20s."}],
-  "149_3": [{"type": "best", "route": "T20 → T19 → D16", "miss": "If S20 : Leaves 129 | If T20 → S19 : T18", "note": "The main road to 32. T20 leaves 89, setting up a smooth drop to T19. If you hit a single 20 first, you have 129, safely recovered with T19 to T16 for 24."}],
-  "148_3": [
-    {"type": "best", "route": "T20 → T16 → D20", "miss": "If S20 : Leaves 128 | If T20 → S16 : T16", "note": "The smartest setup for Tops. T20 leaves 88, so move down to T16. If you hit a single 16 on dart two, you still have 72 left for a high-percentage T16 to 24 finish."},
-    {"type": "alt", "route": "T20 → T20 → D14", "miss": "If S20 : Leaves 128 | If T20 → S20 : T20", "note": "Keeps you throwing at the top of the board, but traps you on D14. We avoid D14 where possible because a single wire miss immediately splits you into an awkward odd number (D7)."}
-  ],
-  "149_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 129", "note": "T20 leaves 89, setting up T19 to cleanly leave 32."}],
-  "149_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 129", "note": "Smash the 20s."}],
-  "148_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 128", "note": "T20 leaves 88, so cross to T16 to leave a flawless 40."}],
-  "148_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 128", "note": "Go for 20s."}],
-  "147_3": [
-    {"type": "best", "route": "T20 → T17 → D18", "miss": "If S20 : Leaves 127 | If T20 → S17 : T18", "note": "The primary baseline. T20 leaves 87, so aim at T17 for a perfect 36. If you hit a single 17 on dart two, you have 70 left, perfectly setting up T18 to leave 16."},
-    {"type": "alt", "route": "T19 → T18 → D18", "miss": "If S19 : Leaves 128 | If T19 → S18 : T16", "note": "Keeps your first two darts at the bottom of the board, minimizing how much you have to move your arm before going for 36."}
-  ],
-  "147_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 127", "note": "T20 leaves 87, letting T17 gracefully leave 36."}],
-  "147_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 127", "note": "Hit 20s."}],
-  "146_3": [
-    {"type": "best", "route": "T20 → T18 → D16", "miss": "If S20 : Leaves 126 | If T20 → S18 : T20", "note": "The tour standard to 32. T20 leaves 86, so slide left to T18. A single 20 first leaves 126, which you fix with two T19s to leave 12."},
-    {"type": "alt", "route": "T19 → T19 → D16", "miss": "If S19 : Leaves 127 | If T19 → S19 : T18", "note": "Keeps you locked onto the 19s so you don't have to adjust your aim or kinetic flow."}
-  ],
-  "146_2": [{"type": "setup", "route": "T20 → T18", "miss": "If S20 : Leaves 126", "note": "T20 leaves 86, so T18 elegantly leaves 32."}],
-  "146_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 126", "note": "Aim high on the 20s."}],
-  "145_3": [
-    {"type": "best", "route": "T20 → T15 → D20", "miss": "If S20 : Leaves 125 | If T20 → S15 : T18", "note": "The mathematically superior path to Tops. T20 leaves 85. Opening up T15 guarantees a double: T15 leaves Tops, and a single 15 leaves 70, letting you fire T18 for 16."},
-    {"type": "alt", "route": "T20 → T19 → D14", "miss": "If S20 : Leaves 125 | If T20 → S19 : T10", "note": "A common rhythm play that naturally flows down the board. The drawback is it forces you into D14, which breaks down into an ugly D7 if you miss inside."},
-    {"type": "alt", "route": "T19 → T16 → D20", "miss": "If S19 : Leaves 126 | If T19 → S16 : T16", "note": "Starts you low on the board. T19 leaves 88, letting you stay low on T16 for Tops."}
-  ],
-  "145_2": [{"type": "setup", "route": "T20 → T15", "miss": "If S20 : Leaves 125", "note": "T20 leaves 85, so cross down to T15 to beautifully leave 40."}],
-  "145_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 125", "note": "Pound the 20s."}],
-  "144_3": [
-    {"type": "best", "route": "T20 → T20 → D12", "miss": "If S20 : Leaves 124 | If T20 → S20 : T16", "note": "The standard power route. Two T20s leave 24. If you drop into a single 20 on dart two, you are at 64, which naturally sets up T16 for 16."},
-    {"type": "alt", "route": "T20 → T16 → D18", "miss": "If S20 : Leaves 124 | If T20 → S16 : T20", "note": "A brilliant alternative if you prefer 36 over 24. After T20 leaves 84, shifting to T16 mathematically guarantees a setup on D18."},
-    {"type": "alt", "route": "T18 → T18 → D18", "miss": "If S18 : Leaves 126 | If T18 → S18 : T16", "note": "Keeps your entire checkout physically grouped around the 18s. A single 18 on dart one leaves a manageable 126."}
-  ],
-  "144_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 124", "note": "T20 leaves 84, meaning T16 flawlessly leaves 36."}],
-  "144_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 124", "note": "Go for 20s."}],
-  "143_3": [
-    {"type": "best", "route": "T20 → T17 → D16", "miss": "If S20 : Leaves 123 | If T20 → S17 : T10", "note": "The optimal path to 32. T20 leaves 83, so drop to T17. If your first dart is a single 20, you have 123, fixed with T19 to T16."},
-    {"type": "alt", "route": "T19 → T18 → D16", "miss": "If S19 : Leaves 124 | If T19 → S18 : T16", "note": "Starts on the bottom of the board. T19 leaves 86, setting up T18 for 32."}
-  ],
-  "143_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 123", "note": "T20 leaves 83, so slide to T17 to leave exactly 32."}],
-  "143_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 123", "note": "Hit 20s."}],
-  "142_3": [
-    {"type": "best", "route": "T20 → T14 → D20", "miss": "If S20 : Leaves 122 | If T20 → S14 : T20", "note": "The highest-percentage Tops setup. T20 leaves 82. Crossing over to T14 is mathematically safer than T18 because a single 14 leaves 68, giving you an easy T20 to 8."},
-    {"type": "alt", "route": "T20 → T18 → D14", "miss": "If S20 : Leaves 122 | If T20 → S18 : T16", "note": "A popular old-school route that leaves 28. It is riskier than the T14 path because D14 breaks down into an odd D7 if you hit the inside wire."},
-    {"type": "alt", "route": "T20 → D25 → D16", "miss": "If S20 : Leaves 122 | If T20 → 25 : S17", "note": "A smart survival play on your second dart. Do not use this Bull pivot if your opponent is on a finish, but under low pressure, it guarantees an elite setup for next visit."}
-  ],
-  "142_2": [{"type": "setup", "route": "T20 → T14", "miss": "If S20 : Leaves 122", "note": "T20 leaves 82, setting up T14 to brilliantly leave 40."}],
-  "142_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 122", "note": "Aim at the 20s."}],
-  "141_3": [
-    {"type": "best", "route": "T20 → T19 → D12", "miss": "If S20 : Leaves 121 | If T20 → S19 : T10", "note": "The legendary nine-darter finish. T20 leaves 81, so cross down to T19 for 24. If you hit a single 19 on dart two, you have 62 left, meaning T10 leaves 32."},
-    {"type": "alt", "route": "T19 → T16 → D18", "miss": "If S19 : Leaves 122 | If T19 → S16 : T16", "note": "We start T19 instead of T17 here because of the fat-bed safety. If you miss into a single 19, you leave 122, which is much easier to salvage than the 124 you get from a single 17."},
-    {"type": "alt", "route": "T17 → T18 → D18", "miss": "If S17 : Leaves 124 | If T17 → S18 : T16", "note": "A classic bottom-board path to 36. You drop to T17, then T18. The primary danger is that a first-dart single 17 traps you on an ugly 124."}
-  ],
-  "141_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 121", "note": "T20 leaves 81, meaning T19 perfectly leaves 24 for your next visit."}],
-  "141_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 121", "note": "Smash 20s."}],
-  "140_3": [
-    {"type": "best", "route": "T20 → T20 → D10", "miss": "If S20 : Leaves 120 | If T20 → S20 : Leaves 60", "note": "The classic power route. T20 leaves 80, and another T20 cleanly leaves 20. If you hit a single 20 on dart one, you have 120 left, letting you go T20 to Tops."},
-    {"type": "alt", "route": "T20 → T16 → D16", "miss": "If T20 → S16 : Leaves 64", "note": "The smarter option if you prefer an elite parity double (32). T20 leaves 80. By pivoting to T16, a single 16 on dart two leaves 64, giving you an immediate dual-hit out on T16."}
-  ],
-  "140_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 120", "note": "T20 leaves 80, so pivot to T16 to leave exactly 32."}],
-  "140_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 120", "note": "Go for 20s to leave 120."}],
-  "139_3": [
-    {"type": "best", "route": "T19 → T14 → D20", "miss": "If S19 : Leaves 120 | If T19 → S14 : Leaves 68", "note": "The primary tour route. T19 leaves 82, so drop down to T14 for Tops. A single 19 first leaves exactly 120, setting up a very reliable T20 to Tops path."},
-    {"type": "alt", "route": "T20 → T13 → D20", "miss": "If S20 : Leaves 119 | If T20 → S13 : Leaves 58", "note": "Starts high on the board. T20 leaves 79, avoiding the D11 trap by dropping to T13 for Tops."},
-    {"type": "alt", "route": "T19 → D25 → D16", "miss": "If S19 : Leaves 120 | If T19 → 25 : Leaves 57", "note": "A mathematically elite setup play if under low pressure. T19 leaves 82. Firing at the Bull guarantees a double attempt: Inner Bull leaves 32, Outer Bull leaves 57, setting up a safe 17 to Tops."}
-  ],
-  "139_2": [{"type": "setup", "route": "T19 → T14", "miss": "If S19 : Leaves 120", "note": "T19 leaves 82, meaning T14 gracefully drops you to 40."}],
-  "139_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 120", "note": "Aim at the 19s to perfectly leave 120 on a single."}],
-  "138_3": [
-    {"type": "best", "route": "T20 → T18 → D12", "miss": "If S20 : Leaves 118 | If T20 → S18 : Leaves 60", "note": "The standard baseline. T20 leaves 78, so step down to T18 for 24. If your second dart hits a single 18, you have 60 left, making it a simple single 20 to Tops."},
-    {"type": "alt", "route": "T19 → T19 → D12", "miss": "If S19 : Leaves 119 | If T19 → S19 : Leaves 63", "note": "Keeps both setup darts clustered in the 19s rhythm. A single 19 on dart one leaves 119."}
-  ],
-  "138_2": [{"type": "setup", "route": "T20 → T18", "miss": "If S20 : Leaves 118", "note": "T20 leaves 78, so T18 brilliantly drops you onto 24."}],
-  "138_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 118", "note": "Hit 20s."}],
-  "137_3": [
-    {"type": "best", "route": "T20 → T15 → D16", "miss": "If S20 : Leaves 117 | If T20 → S15 : Leaves 62", "note": "The ideal setup for 32. T20 leaves 77, so T15 gets the job done. If your second dart hits a single 15, you have 62 left, giving you a clean T10 to 32."},
-    {"type": "alt", "route": "T20 → T19 → D10", "miss": "If S20 : Leaves 117 | If T20 → S19 : Leaves 58", "note": "The most common top-to-bottom rhythm route. T20 leaves 77, dropping to T19 to leave 20. The drawback is D10 is an odd-split double, whereas the T15 route locks in D16."},
-    {"type": "alt", "route": "T19 → T16 → D16", "miss": "If S19 : Leaves 118 | If T19 → S16 : Leaves 64", "note": "Gets you straight to the bottom of the board. T19 leaves 80, opening up a direct T16 for 32."}
-  ],
-  "137_2": [{"type": "setup", "route": "T20 → T15", "miss": "If S20 : Leaves 117", "note": "T20 leaves 77, letting you cross to T15 to leave exactly 32."}],
-  "137_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 117", "note": "Aim high on the 20s."}],
-  "136_3": [{"type": "best", "route": "T20 → T20 → D8", "miss": "If S20 : Leaves 116 | If T20 → S20 : Leaves 56", "note": "The definitive route. Two T20s leave a perfect 16. If your second dart is a single 20, you have 56 left, which neatly sets up a single 16 for Tops."}
-  ],
-  "136_2": [{"type": "setup", "route": "T20 → T12", "miss": "If S20 : Leaves 116", "note": "T20 leaves 76, so pivot down to T12 to cleanly leave 40."}],
-  "136_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 116", "note": "Pound the 20s."}],
-  "135_3": [
-    {"type": "best", "route": "T20 → T17 → D12", "miss": "If S20 : Leaves 115 | If T20 → S17 : Leaves 58", "note": "The primary tour path. T20 leaves 75, so shift to T17 for 24. If your second dart hits a single 17, you have 58 left, allowing a simple 18 to Tops."},
-    {"type": "alt", "route": "T20 → T13 → D18", "miss": "If S20 : Leaves 115 | If T20 → S13 : Leaves 62", "note": "A fantastic alternative. T20 leaves 75, so drop to T13 to establish a highly reliable 36."},
-    {"type": "alt", "route": "D25 → T15 → D20", "miss": "If 25 : Leaves 110", "note": "An exhibition/high-margin setup play. Starting on the Bullseye guarantees safety: an Inner Bull leaves 85 (T15 to Tops), while an Outer Bull leaves 110, safely keeping you in the game."}
-  ],
-  "135_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 115", "note": "T20 leaves 75, meaning T17 flawlessly drops you onto 24."}],
-  "135_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 115", "note": "Go for 20s."}],
-  "134_3": [
-    {"type": "best", "route": "T20 → T14 → D16", "miss": "If S20 : Leaves 114 | If T20 → S14 : Leaves 60", "note": "The perfect setup line. T20 leaves 74, so cross over to T14 for 32. If your second dart hits a single 14, you have 60 left, letting you throw a single 20 for Tops."},
-    {"type": "alt", "route": "T20 → T18 → D10", "miss": "If S20 : Leaves 114 | If T20 → S18 : Leaves 56", "note": "The standard top-to-bottom rhythm alternative. T20 leaves 74, dropping to T18 for 20. If your second dart hits a single 18, you still have 56 left for a safe 16 to Tops."}
-  ],
-  "134_2": [{"type": "setup", "route": "T20 → T14", "miss": "If S20 : Leaves 114", "note": "T20 leaves 74, so cross to T14 to leave a flawless 32."}],
-  "134_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 114", "note": "Smash 20s."}],
-  "133_3": [{"type": "best", "route": "T20 → T19 → D8", "miss": "If S20 : Leaves 113 | If T20 → S19 : Leaves 54", "note": "The absolute best route. T20 leaves 73, so drop to T19 to leave 16. If your second dart is a single 19, you have 54 left, giving you a safe 14 to Tops."}],
-  "133_2": [{"type": "setup", "route": "T20 → T19", "miss": "If S20 : Leaves 113", "note": "T20 leaves 73, letting T19 smoothly set up 16."}],
-  "133_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 113", "note": "Aim at the 20s."}],
-  "132_3": [
-    {"type": "best", "route": "T20 → T16 → D12", "miss": "If S20 : Leaves 112 | If T20 → S16 : Leaves 56", "note": "The reliable power line. T20 leaves 72, so use T16 to leave 24. If you hit a single 16 on dart two, you have 56 left, stepping down neatly to a single 16 for Tops."},
-    {"type": "alt", "route": "D25 → D25 → D16", "miss": "If 25 : Leaves 107 | If D25 → 25 : Leaves 57", "note": "The classic exhibition shot. An inner Bullseye leaves 82, meaning even if your second dart hits the outer Bullseye, you have 57 left for a safe single 17 to Tops."}
-  ],
-  "132_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 112", "note": "T20 leaves 72, so T16 elegantly leaves 24."}],
-  "132_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 112", "note": "Hit 20s."}],
-  "131_3": [
-    {"type": "best", "route": "T20 → T13 → D16", "miss": "If S20 : Leaves 111 | If T20 → S13 : Leaves 58", "note": "The mathematical best setup for 32. T20 leaves 71, so cross over to T13. If your second dart hits a single 13, you have 58 left, which is an easy single 18 to Tops."},
-    {"type": "alt", "route": "T19 → T14 → D16", "miss": "If S19 : Leaves 112 | If T19 → S14 : Leaves 60", "note": "An excellent bottom-board flow. T19 leaves 74, letting you stay low on T14 to leave 32. A single 19 first leaves 112."},
-    {"type": "alt", "route": "T20 → T17 → D10", "miss": "If S20 : Leaves 111 | If T20 → S17 : Leaves 54", "note": "A top-to-bottom rhythm option. T20 leaves 71, dropping to T17 to leave 20. If your second dart is a single 17, you have 54 left, stepping left to a single 14 for Tops."}
-  ],"131_2": [{"type": "setup", "route": "T20 → T13", "miss": "If S20 : Leaves 111", "note": "T20 leaves 71, setting up T13 to perfectly leave 32."}],
-  "131_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 111", "note": "Aim high on the 20s."}],
-
-    // 130 TO 91 BLOCK
-  "130_3": [
-    {"type": "best", "route": "T20 → T18 → D8", "miss": "If S20 : Leaves 110 | If T20 → S18 : Leaves 52", "note": "The primary route to 16, a top-tier double. T20 leaves 70, where T18 gets you your finish. If you hit a single 20 first, you have 110 left, safely setting up T20 to the Bullseye."},
-    {"type": "survival", "route": "T20 → T20 → D5", "miss": "If S20 : Leaves 110 | If T20 → S20 : Leaves 50", "note": "A gritty bailout play. T20 leaves 70, so staying for another T20 leaves D5. The drawback is D5 is an ugly odd double, but hitting a single 20 on your second dart guarantees a shot at the Bullseye to save the leg."},
-    {"type": "alt", "route": "T20 → 20 → D25", "miss": "If S20 : Leaves 110", "note": "A smart tactical play if you prefer the center ring. T20 leaves 70, so just toss a fat single 20 to guarantee a shot at the Bullseye."}
-  ],
-  "130_2": [{"type": "setup", "route": "T20 → 20", "miss": "If S20 : Leaves 110", "note": "T20 leaves 70, meaning a fat 20 perfectly leaves the Bullseye for your next visit."}],
-  "130_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 110", "note": "Aim at the 20s. A single safely leaves 110."}],
-  "129_3": [{"type": "best", "route": "T19 → T16 → D12", "miss": "If S19 : Leaves 110 | If T19 → S16 : Leaves 56", "note": "You must start on 19s to survive a single. T19 leaves 72, bringing you down to T16 for 24. A single 19 on your first dart safely leaves 110, giving you a great bailout shot at T20 for the Bullseye."}],
-  "129_2": [{"type": "setup", "route": "T19 → T16", "miss": "If S19 : Leaves 110", "note": "T19 leaves 72, allowing T16 to flawlessly set up 24. A single 19 safely leaves 110."}],
-  "129_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 110", "note": "Aim at the 19s to avoid the single 20 bogey trap. A single 19 nicely leaves 110."}],
-  "128_3": [
-    {"type": "best", "route": "T18 → T14 → D16", "miss": "If S18 : Leaves 110 | If T18 → S14 : Leaves 60", "note": "You must start on 18s. A single 18 leaves 110, which you can easily finish. If you open on 20s and hit a single, you are trapped on 108 with no out. T18 leaves 74, setting up T14 for 32."},
-    {"type": "alt", "route": "T18 → T18 → D10", "miss": "If S18 : Leaves 110 | If T18 → S18 : Leaves 56", "note": "Keeps you locked onto the 18s rhythm. T18 leaves 74, and a second T18 leaves 20. If your second dart is a single 18, you safely leave 56 (16 to Tops)."}
-  ],
-  "128_2": [{"type": "setup", "route": "T18 → T14", "miss": "If S18 : Leaves 110", "note": "T18 leaves 74, so T14 perfectly drops you onto 32."}],
-  "128_1": [{"type": "setup", "route": "T18", "miss": "If S18 : Leaves 110", "note": "Hit 18s. A single beautifully leaves 110."}],
-  "127_3": [{"type": "best", "route": "T20 → T17 → D8", "miss": "If S20 : Leaves 107 | If T20 → S17 : Leaves 50", "note": "T20 is your only choice. A single 20 leaves 107, keeping you alive. T20 leaves 67, where a single 17 is a perfect miss because it leaves the Bullseye."}],
-  "127_2": [{"type": "setup", "route": "T20 → T17", "miss": "If S20 : Leaves 107", "note": "T20 leaves 67, setting up T17 to cleanly leave 16."}],
-  "127_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 107", "note": "Go for 20s."}],
-  "126_3": [
-    {"type": "best", "route": "T19 → T19 → D6", "miss": "If S19 : Leaves 107 | If T19 → S19 : Leaves 50", "note": "Start on 19s to stay alive. A single 19 leaves 107, while a single 20 leaves a dead 106. T19 leaves 69, so stay right there. An accidental single 19 on dart two perfectly leaves the Bullseye."},
-    {"type": "alt", "route": "T19 → T15 → D12", "miss": "If S19 : Leaves 107 | If T19 → S15 : Leaves 54", "note": "Use this if you prefer to finish on 24 instead of 12. T19 leaves 69, so slide over to T15. A single 15 on dart two leaves 54, allowing 14 to Tops."}
-  ],
-  "126_2": [{"type": "setup", "route": "T19 → 19", "miss": "If S19 : Leaves 107", "note": "T19 leaves 69, so a fat 19 perfectly sets up the Bullseye."}],
-  "126_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 107", "note": "Smash 19s."}],
-  "125_3": [
-    {"type": "best", "route": "25 → T20 → D20", "miss": "If D25 : Leaves 75 | If 25 → S20 : Leaves 80", "note": "A brilliant move if you like the center. Hitting the outer Bullseye leaves exactly 100, teeing up a classic T20 to Tops. If you accidentally hit the inner Bull, you still have 75 left."},
-    {"type": "alt", "route": "T18 → T13 → D16", "miss": "If S18 : Leaves 107 | If T18 → S13 : Leaves 58", "note": "You must start on 18s if you want a treble. T18 leaves 71, dropping cleanly into T13 for 32. A single 18 leaves 107, keeping you in the game."},
-    {"type": "alt", "route": "D25 → D25 → D12", "miss": "If 25 : Leaves 100", "note": "The true exhibition power play. An Inner Bull leaves 75. If you hit a second Inner Bull, you leave 25. Since D12 is not 25, you cannot actually finish 125 with three Bullseye throws; this route requires you to pivot."}
-  ],
-  "125_2": [{"type": "setup", "route": "T18 → T13", "miss": "If S18 : Leaves 107", "note": "T18 leaves 71, meaning T13 beautifully leaves 32."}],
-  "125_1": [{"type": "setup", "route": "T18", "miss": "If S18 : Leaves 107", "note": "Aim at the 18s."}],
-  "124_3": [
-    {"type": "best", "route": "T20 → T16 → D8", "miss": "If S20 : Leaves 104 | If T20 → S16 : Leaves 48", "note": "The standard path to 16. T20 leaves 64, letting you shift to T16. If your first dart is a single 20, you have 104 left, cleanly opening up T18 for the Bullseye."},
-    {"type": "survival", "route": "T20 → T14 → D11", "miss": "If S20 : Leaves 104 | If T20 → S14 : Leaves 50", "note": "The ultimate pressure bailout. T20 leaves 64. Aiming at 14 forces you onto an ugly D11 if you hit the treble, but a single 14 guarantees you stay alive with a shot at the Bullseye."}
-  ],
-  "124_2": [{"type": "setup", "route": "T20 → T16", "miss": "If S20 : Leaves 104", "note": "T20 leaves 64, letting T16 cleanly leave 16."}],
-  "124_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 104", "note": "Hit 20s."}],
-  "123_3": [
-    {"type": "best", "route": "T19 → T10 → D18", "miss": "If S19 : Leaves 104 | If T19 → S10 : Leaves 56", "note": "T19 is an absolute must to keep your turn alive. A single 19 leaves 104. If you start on 20s and hit a single, you are stuck on 103 with no out. T19 leaves 66, setting up T10 for 36."},
-    {"type": "survival", "route": "T19 → T16 → D9", "miss": "If S19 : Leaves 104 | If T19 → S16 : Leaves 50", "note": "Use this only when your opponent is waiting to win. T19 leaves 66. Aiming 16 risks landing on D9, but a single 16 guarantees a lifeline at the Bullseye."}
-  ],
-  "123_2": [{"type": "setup", "route": "T19 → T10", "miss": "If S19 : Leaves 104", "note": "T19 leaves 66, allowing T10 to leave a flawless 36."}],
-  "123_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 104", "note": "Aim high on the 19s."}],
-  "122_3": [
-    {"type": "best", "route": "T18 → T16 → D10", "miss": "If S18 : Leaves 104 | If T18 → S16 : Leaves 52", "note": "You must start on 18s. A single 18 leaves 104 to keep you alive. T18 leaves 68, so go to T16 to leave 20. A single 16 on your second dart nicely leaves 52, letting you go 12 to Tops."},
-    {"type": "survival", "route": "T18 → T18 → D7", "miss": "If S18 : Leaves 104 | If T18 → S18 : Leaves 50", "note": "Pure match survival. T18 leaves 68. Staying on 18 traps you on D7, but a single 18 guarantees a shot at the Bullseye to save the leg."},
-    {"type": "alt", "route": "T18 → T20 → D4", "miss": "If S18 : Leaves 104 | If T18 → S20 : Leaves 48", "note": "A good option if you want to push for a double, but shooting at D4 as a primary target drastically limits your safety net on an inside miss."}
-  ],
-  "122_2": [{"type": "setup", "route": "T18 → T16", "miss": "If S18 : Leaves 104", "note": "T18 leaves 68, so T16 elegantly leaves 20."}],
-  "122_1": [{"type": "setup", "route": "T18", "miss": "If S18 : Leaves 104", "note": "Pound the 18s."}],
-  "121_3": [
-    {"type": "best", "route": "T20 → T15 → D8", "miss": "If S20 : Leaves 101 | If T20 → S15 : Leaves 46", "note": "The main setup for 16. T20 leaves 61, crossing down to T15. A single 20 first leaves 101, allowing a direct T17 to the Bullseye to save the turn."},
-    {"type": "survival", "route": "T20 → T11 → D14", "miss": "If S20 : Leaves 101 | If T20 → S11 : Leaves 50", "note": "The pressure route. T20 leaves 61. Aiming at 11 leaves you on D14 which breaks down poorly, but a single 11 guarantees a dart at the Bullseye."},
-    {"type": "alt", "route": "T17 → T18 → D8", "miss": "If S17 : Leaves 104 | If T17 → S18 : Leaves 52", "note": "Starts you at the bottom of the board. T17 leaves 70, letting you smoothly shift right to T18 for 16. A single 17 safely leaves 104."}
-  ],
-  "121_2": [{"type": "setup", "route": "T20 → T15", "miss": "If S20 : Leaves 101", "note": "T20 leaves 61, meaning T15 gracefully leaves 16."}],
-  "121_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 101", "note": "Go for 20s."}],
-  "120_3": [{"type": "best", "route": "T20 → 20 → D20", "miss": "If S20 : Leaves 100", "note": "Shanghai. T20 leaves 60, meaning a fat 20 sets up Tops perfectly. A single 20 on dart one leaves a clean 100 for your last two darts."}],
-  "120_2": [{"type": "setup", "route": "T20 → 20", "miss": "If S20 : Leaves 100", "note": "T20 leaves 60, setting up a fat 20 to cleanly leave Tops."}],
-  "120_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 100", "note": "Hit 20s."}],
-  "119_3": [
-    {"type": "best", "route": "T19 → T10 → D16", "miss": "If S19 : Leaves 100 | If T19 → S10 : Leaves 52", "note": "T19 leaves 62. Drop to T10 to secure 32. If your first dart is a single 19, you gracefully leave exactly 100."},
-    {"type": "survival", "route": "T19 → 12 → D25", "miss": "If S19 : Leaves 100 | If T19 → S12 : Leaves 50", "note": "The pressure bailout. T19 leaves 62. Aiming at 12 forces you onto a dead-end D13 if you hit the treble, but a single 12 guarantees a shot at the Bullseye to save the leg."}
-  ],
-  "119_2": [{"type": "setup", "route": "T19 → T10", "miss": "If S19 : Leaves 100", "note": "T19 leaves 62, letting T10 perfectly leave 32."}],
-  "119_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 100", "note": "Smash 19s."}],
-  "118_3": [
-    {"type": "best", "route": "T20 → 18 → D20", "miss": "If S20 : Leaves 98 | If T20 → T18 : Leaves 4", "note": "The Ken Berman power play. T20 leaves 58, meaning a fat 18 guarantees a double attempt, and an accidental treble leaves D2. A single 20 first leaves 98, forcing you to shoot for D19, but sacrificing dart 1 safety for dart 2 equity is worth the risk."},
-    {"type": "alt", "route": "T18 → T16 → D8", "miss": "If S18 : Leaves 100", "note": "John Lowe's traditional route. A single 18 gracefully leaves 100, but if you hit T18 (64 left), you have zero fat-bed safety on your second dart because aiming 14 for the Bull risks the D11 trap."}
-  ],
-  "118_2": [{"type": "setup", "route": "T20 → 18", "miss": "If S20 : Leaves 98", "note": "T20 leaves 58, meaning a fat 18 sets up exactly 40 for your next visit."}],
-  "118_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 98", "note": "Aim at the 20s."}],
-  "117_3": [{"type": "best", "route": "T20 → 17 → D20", "miss": "If S20 : Leaves 97 | If T20 → T17 : Leaves 6", "note": "T20 leaves 57. A single 17 leaves Tops, and a stray T17 safely leaves D3. A single 20 first leaves 97."}],
-  "117_2": [{"type": "setup", "route": "T20 → 17", "miss": "If S20 : Leaves 97", "note": "T20 leaves 57, allowing a fat 17 to beautifully leave 40."}],
-  "117_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 97", "note": "Hit 20s."}],
-  "116_3": [
-    {"type": "best", "route": "T20 → 16 → D20", "miss": "If S20 : Leaves 96 | If T20 → T16 : Leaves 8", "note": "The best top-board sequence. T20 leaves 56, so you just hit a single 16 for Tops. An accidental T16 safely leaves D4. A single 20 first leaves 96."},
-    {"type": "alt", "route": "T19 → 19 → D20", "miss": "If S19 : Leaves 97 | If T19 → T19 : Leaves 2", "note": "A great bottom-board rhythm play. T19 leaves 59, letting you stay right there for a single 19 to Tops. A first dart single 19 safely leaves 97."}
-  ],
-  "116_2": [{"type": "setup", "route": "T20 → 16", "miss": "If S20 : Leaves 96", "note": "T20 leaves 56, so a simple 16 perfectly sets up Tops."}],
-  "116_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 96", "note": "Aim high on the 20s."}],
-  "115_3": [
-    {"type": "best", "route": "T19 → 18 → D20", "miss": "If S19 : Leaves 96 | If T19 → T18 : Leaves 4", "note": "A highly robust path. T19 leaves 58, setting up a safe 18 for Tops with built-in treble safety. If your first dart drops into a single 19, you leave 96, keeping you totally out of odd numbers."},
-    {"type": "avoid", "route": "T20 → 15 → D20", "miss": "If S20 : Leaves 95 | If T20 → T15 : Leaves 10", "note": "A nasty trap. T20 leaves 55, forcing an odd single 15. Worse, a single 20 first leaves 95, which forces you to shoot for an ugly double 19."}
-  ],
-  "115_2": [{"type": "setup", "route": "T19 → 18", "miss": "If S19 : Leaves 96", "note": "T19 leaves 58, setting up a fat 18 to leave 40."}],
-  "115_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 96", "note": "Pound the 19s to avoid the S20 bogey math."}],
-  "114_3": [{"type": "best", "route": "T20 → 14 → D20", "miss": "If S20 : Leaves 94 | If T20 → T14 : Leaves 12", "note": "The optimal setup for Tops. T20 leaves 54, so you just move horizontally to a single 14. A single 20 first leaves 94."}],
-  "114_2": [{"type": "setup", "route": "T20 → 14", "miss": "If S20 : Leaves 94", "note": "T20 leaves 54, meaning a fat 14 gracefully leaves 40."}],
-  "114_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 94", "note": "Go for 20s."}],
-  "113_3": [
-    {"type": "best", "route": "T20 → 13 → D20", "miss": "If S20 : Leaves 93 | If T20 → T13 : Leaves 14", "note": "The primary route. T20 leaves 53, setting up a single 13 to Tops. A single 20 first leaves 93."},
-    {"type": "alt", "route": "T19 → 16 → D20", "miss": "If S19 : Leaves 94 | If T19 → T16 : Leaves 8", "note": "A solid bottom-board alternative. T19 leaves 56, letting you use a fat 16 for Tops. A single 19 first leaves 94."}
-  ],
-  "113_2": [{"type": "setup", "route": "T20 → 13", "miss": "If S20 : Leaves 93", "note": "T20 leaves 53, meaning a fat 13 beautifully leaves 40."}],
-  "113_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 94", "note": "Hit 19s. A single securely leaves 94, whereas a single 20 traps you on 93."}],
-  "112_3": [
-    {"type": "best", "route": "T20 → 12 → D20", "miss": "If S20 : Leaves 92 | If T20 → T12 : Leaves 16", "note": "The smartest path. T20 leaves 52. A single 12 leaves Tops, and a T12 perfectly leaves D8 for maximum safety."},
-    {"type": "alt", "route": "T18 → 18 → D20", "miss": "If S18 : Leaves 94 | If T18 → T18 : Leaves 4", "note": "Keeps you locked on the 18s. T18 leaves 58. A fat 18 leaves Tops, and an accidental T18 safely leaves D2 without busting."},
-    {"type": "alt", "route": "T20 → 20 → D16", "miss": "If S20 : Leaves 92", "note": "A comfortable rhythm play, but be careful—an accidental T20 on your second dart busts the 52."}
-  ],
-  "112_2": [{"type": "setup", "route": "T20 → 12", "miss": "If S20 : Leaves 92", "note": "T20 leaves 52, so a fat 12 flawlessly leaves Tops."}],
-  "112_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 92", "note": "Smash 20s."}],
-  "111_3": [
-    {"type": "best", "route": "T19 → 14 → D20", "miss": "If S19 : Leaves 92 | If T19 → T14 : Leaves 12", "note": "A highly robust baseline. T19 leaves 54. A fat 14 leaves Tops, and an accidental T14 nicely leaves D6. A single 19 first leaves 92."},
-    {"type": "alt", "route": "T20 → 11 → D20", "miss": "If S20 : Leaves 91 | If T20 → T11 : Leaves 18", "note": "The main top-board entry. T20 leaves 51. A fat 11 leaves Tops, but an accidental T11 forces a tricky D9. A single 20 first leaves 91."}
-  ],
-  "111_2": [{"type": "setup", "route": "T19 → 14", "miss": "If S19 : Leaves 92", "note": "T19 leaves 54, setting up a fat 14 to cleanly leave 40."}],
-  "111_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 92", "note": "Aim at the 19s to safely drop into a clean 3-dart checkout range."}],
-  "110_3": [
-    {"type": "best", "route": "T20 → 10 → D20", "miss": "If S20 : Leaves 90", "note": "The safest top-board play. T20 leaves 50. A fat 10 leaves Tops, and an accidental T10 safely leaves D10. A single 20 first leaves 90, which is easily rescued."},
-    {"type": "avoid", "route": "T20 → 18 → D16", "miss": "If S20 : Leaves 90", "note": "A massive bust trap. T20 leaves 50. If you aim at 18 and accidentally hit the treble, you score 54 and instantly bust your turn."}
-  ],
-  "110_2": [{"type": "best", "route": "T20 → D25", "miss": "If S20 : Leaves 90", "note": "The only mathematical 2-dart out for 110. You must hit the treble to earn a shot at the Bullseye."}],
-  "110_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 90", "note": "Smash the 20s. A treble leaves 50, and a single leaves a perfect 90 for your next visit."}],
-  "109_3": [
-    {"type": "best", "route": "T19 → 12 → D20", "miss": "If S19 : Leaves 90 | If T19 → S12 : Leaves 40", "note": "The smartest mathematical path. T19 leaves 52. Aiming at 12 leaves Tops, and an accidental T12 safely leaves D8. A single 19 first leaves exactly 90."},
-    {"type": "avoid", "route": "T20 → 17 → D16", "miss": "If S20 : Leaves 89", "note": "Another fatal bust trap. T20 leaves 49. If you aim at 17 and slip into the treble ring, you score 51 and bust."},
-    {"type": "avoid", "route": "T19 → 20 → D16", "miss": "If S19 : Leaves 90", "note": "T19 leaves 52. If you aim at the 20 and accidentally hit the T20, you score 60 and bust the visit completely."}
-  ],
-  "109_2": [{"type": "setup", "route": "T19 → 12", "miss": "If S19 : Leaves 90", "note": "No two-dart out here. Hit T19, then use a fat 12 to safely set up Tops."}],
-  "109_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 90", "note": "Pound the 19s. A single leaves exactly 90 for your next turn."}],
-  "108_3": [
-    {"type": "best", "route": "T20 → 8 → D20", "miss": "If S20 : Leaves 88 | If T20 → S8 : Leaves 40", "note": "An incredibly safe path. T20 leaves 48. A fat 8 leaves Tops, and an accidental T8 perfectly leaves D12. A single 20 first safely leaves 88."},
-    {"type": "alt", "route": "T17 → 17 → D20", "miss": "If S17 : Leaves 91 | If T17 → S17 : Leaves 40", "note": "A brilliant rhythm play that survives the treble. T17 leaves 57. A fat 17 leaves Tops, and an accidental T17 cleanly leaves D3 without busting."},
-    {"type": "avoid", "route": "T18 → 18 → D18", "miss": "If S18 : Leaves 90", "note": "A total trap. T18 leaves 54. Staying on the 18s sounds great until you accidentally hit a second T18 (54 points) and bust the visit."}
-  ],
-  "108_2": [{"type": "setup", "route": "T20 → 8", "miss": "If S20 : Leaves 88", "note": "You need three darts to finish. Hit T20, then drop a fat 8 to leave Tops. Aiming at 16 here is a bust trap if you accidentally hit the treble."}],
-  "108_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 88", "note": "Fire at the 20s. A single leaves 88, which is an easy cleanup next visit."}],
-  "107_3": [
-    {"type": "best", "route": "T19 → 10 → D20", "miss": "If S19 : Leaves 88 | If T19 → S10 : Leaves 40", "note": "The most robust option. T19 leaves 50. A fat 10 leaves Tops, and an accidental T10 safely leaves D10. A single 19 first leaves 88."},
-    {"type": "best", "route": "T20 → 15 → D16", "miss": "If S20 : Leaves 87 | If T20 → S15 : Leaves 32", "note": "A fantastic top-board option. T20 leaves 47. A fat 15 sets up 32, and an accidental T15 leaves D1 without busting."},
-    {"type": "avoid", "route": "T19 → 18 → D16", "miss": "If S19 : Leaves 88", "note": "T19 leaves 50. Aiming at 18 forces a bust if you accidentally hit the T18 (54 points). Do not take this route."}
-  ],
-  "107_2": [{"type": "best", "route": "T19 → D25", "miss": "If S19 : Leaves 88", "note": "The only mathematical 2-dart out for 107. You must hit the treble to earn a shot at the Bullseye."}],
-  "107_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 88", "note": "With one dart, you need the 19s. A single leaves a highly manageable 88."}],
-  "106_3": [
-    {"type": "best", "route": "T20 → 14 → D16", "miss": "If S20 : Leaves 86 | If T20 → S14 : Leaves 32", "note": "The optimal path. T20 leaves 46. A fat 14 leaves 32, and an accidental T14 safely leaves D2. A single 20 first leaves 86."},
-    {"type": "alt", "route": "T20 → 6 → D20", "miss": "If S20 : Leaves 86 | If T20 → S6 : Leaves 40", "note": "An excellent top-tier alternative. T20 leaves 46. A fat 6 leaves Tops, and an accidental T6 safely leaves D14."}
-  ],
-  "106_2": [{"type": "setup", "route": "T20 → 14", "miss": "If S20 : Leaves 86", "note": "No two-dart finish. Hit T20, then use a fat 14 to leave 32."}],
-  "106_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 86", "note": "Hit the 20s. A single leaves 86, setting up a clean T18 path next visit."}],
-  "105_3": [
-    {"type": "best", "route": "T20 → 13 → D16", "miss": "If S20 : Leaves 85 | If T20 → S13 : Leaves 32", "note": "The optimal setup. T20 leaves 45. A fat 13 leaves 32, and an accidental T13 securely leaves D3. A single 20 first leaves 85."}
-  ],
-  "105_2": [{"type": "setup", "route": "T20 → 13", "miss": "If S20 : Leaves 85", "note": "Hit T20 and drop a fat 13 to leave 32. Do not aim for 15, as an accidental treble busts the turn."}],
-  "105_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 86", "note": "Go low on 19s. A single leaves 86. Starting on 20s leaves 85, which forces awkward odd numbers next turn."}],
-  "104_3": [
-    {"type": "best", "route": "T20 → 12 → D16", "miss": "If S20 : Leaves 84 | If T20 → S12 : Leaves 32", "note": "The smartest path to a premier double. T20 leaves 44. A fat 12 leaves 32, and an accidental T12 smoothly leaves D4."},
-    {"type": "alt", "route": "T19 → 15 → D16", "miss": "If S19 : Leaves 85 | If T19 → S15 : Leaves 32", "note": "A solid bottom-board alternative. T19 leaves 47. A fat 15 leaves 32, and an accidental T15 safely leaves D1."},
-    {"type": "avoid", "route": "T18 → 18 → D16", "miss": "If S18 : Leaves 86", "note": "A devastating trap. T18 leaves 50. If you stay on the 18s and accidentally hit the treble (54), you bust completely."}
-  ],
-  "104_2": [{"type": "best", "route": "T18 → D25", "miss": "If S18 : Leaves 86", "note": "The only mathematical 2-dart out for 104. You must hit the treble to earn a shot at the Bullseye."}],
-  "104_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 84", "note": "A single 20 leaves 84, setting up a standard T20 route. T18 is also a great option to leave 86."}],
-  "103_3": [
-    {"type": "best", "route": "T19 → 14 → D16", "miss": "If S19 : Leaves 84 | If T19 → S14 : Leaves 32", "note": "An elite parity route. T19 leaves 46. A fat 14 leaves 32, and an accidental T14 safely leaves D4. A single 19 first leaves 84."},
-    {"type": "survival", "route": "T20 → 3 → D20", "miss": "If S20 : Leaves 83 | If T20 → S3 : Leaves 40", "note": "A pressure bailout to avoid awkward math. T20 leaves 43. A fat 3 leaves Tops, but hitting a T3 forces you onto an ugly D17. Use only when desperate."},
-    {"type": "alt", "route": "T20 → 11 → D16", "miss": "If S20 : Leaves 83 | If T20 → S11 : Leaves 32", "note": "T20 leaves 43. A fat 11 leaves 32, and an accidental T11 safely leaves D5."}
-  ],
-  "103_2": [{"type": "setup", "route": "T19 → 14", "miss": "If S19 : Leaves 84", "note": "Hit T19, then use a fat 14 to safely leave 32."}],
-  "103_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 84", "note": "Stay on the 19s. A single leaves 84, giving you a perfect T20 setup next visit."}],
-  "102_3": [
-    {"type": "best", "route": "T20 → 10 → D16", "miss": "If S20 : Leaves 82 | If T20 → S10 : Leaves 32", "note": "The ultimate setup. T20 leaves 42. A fat 10 leaves 32, and an accidental T10 perfectly leaves D6. A single 20 first leaves 82."},
-    {"type": "alt", "route": "T20 → 6 → D18", "miss": "If S20 : Leaves 82 | If T20 → S6 : Leaves 36", "note": "A fantastic right-side option. T20 leaves 42. A fat 6 leaves 36, and an accidental T6 beautifully leaves D12."}
-  ],
-  "102_2": [{"type": "setup", "route": "T20 → 10", "miss": "If S20 : Leaves 82", "note": "Hit T20, then drop a fat 10 to leave 32."}],
-  "102_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 82", "note": "Fire at the 20s. A single leaves 82, teeing up the Bullseye pivot next visit."}],
-  "101_3": [
-    {"type": "best", "route": "T19 → 12 → D16", "miss": "If S19 : Leaves 82 | If T19 → S12 : Leaves 32", "note": "The most secure path. T19 leaves 44. A fat 12 leaves 32, and an accidental T12 smoothly leaves D4. A single 19 first leaves 82."}
-  ],
-  "101_2": [{"type": "best", "route": "T17 → D25", "miss": "If S17 : Leaves 84", "note": "The only mathematical 2-dart out for 101. You must hit the treble to earn a shot at the Bullseye."}],
-  "101_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 82", "note": "Hit the 19s. A single leaves 82, meaning your next visit starts with a guaranteed Bullseye pivot."}],
-  "100_3": [
-    {"type": "best", "route": "T20 → D20", "miss": "If S20 : Leaves 80", "note": "Smash the 20s. A treble gives you two darts at Tops. A single leaves 80, meaning you still have a clean path with another treble 20."},
-    {"type": "alt", "route": "T19 → 11 → D16", "miss": "If S19 : Leaves 81", "note": "If the 20s are blocked or you prefer the bottom board. A treble leaves 43, letting you drop a fat 11 to set up 32. An accidental T11 safely leaves D5."}
-  ],
-  "100_2": [{"type": "best", "route": "T20 → D20", "miss": "If S20 : Leaves 80", "note": "You have two darts. Hit the treble 20 and you get a shot at Tops. A single leaves you safely on 80 for your next turn."}],
-  "100_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 80", "note": "One dart left, just aim at 20. A treble leaves Tops, and a single leaves a perfect 80."}],
-  "99_3": [
-    {"type": "best", "route": "T19 → 10 → D16", "miss": "If S19 : Leaves 80", "note": "Start on 19s. A treble leaves 42, setting up a safe 10 to leave 32. An accidental T10 perfectly leaves D6. A single 19 safely leaves exactly 80."},
-    {"type": "alt", "route": "T19 → 6 → D18", "miss": "If S19 : Leaves 80", "note": "A fantastic alternative parity path. T19 leaves 42. A fat 6 leaves 36, and an accidental T6 gracefully leaves D12."},
-    {"type": "alt", "route": "T20 → 7 → D16", "miss": "If S20 : Leaves 79", "note": "If you prefer starting high, hit treble 20. T20 leaves 39, meaning a fat 7 leaves 32. An accidental T7 safely leaves D9."}
-  ],
-  "99_2": [{"type": "setup", "route": "T19 → 10", "miss": "If S19 : Leaves 80", "note": "You need three darts to finish 99. With two in hand, hit T19 and drop a fat 10 to perfectly leave 32."}],
-  "99_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 80", "note": "Hit the 19s to set up your next turn. A single leaves a pristine 80, and a treble leaves 42."}],
-  "98_3": [
-    {"type": "best", "route": "T20 → D19", "miss": "If S20 : Leaves 78", "note": "The quickest way out. Treble 20 leaves double 19. A single 20 keeps you alive, leaving 78 for treble 18 to double 12."},
-    {"type": "alt", "route": "T19 → 9 → D16", "miss": "If S19 : Leaves 79", "note": "A great choice to avoid double 19. Treble 19 leaves 41, so just toss a fat 9 to leave 32. An accidental T9 leaves D7."}
-  ],
-  "98_2": [{"type": "best", "route": "T20 → D19", "miss": "If S20 : Leaves 78", "note": "With two darts, hit treble 20 and take your shot at double 19. A single leaves 78 for next time."}],
-  "98_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 78", "note": "Smash the 20s. A treble leaves 38, and a single leaves 78."}],
-  "97_3": [
-    {"type": "best", "route": "T19 → D20", "miss": "If S19 : Leaves 78", "note": "A beautiful two-dart combo. Treble 19 leaves Tops. If you miss into the single 19, you have 78 left and can easily pivot to treble 18."},
-    {"type": "avoid", "route": "T20 → 1 → D18", "miss": "If S20 : Leaves 77", "note": "Treble 20 leaves 37, forcing you to find a single 1. Worse, a single 20 leaves an awkward 77."}
-  ],
-  "97_2": [{"type": "best", "route": "T19 → D20", "miss": "If S19 : Leaves 78", "note": "Hit treble 19 and shoot at Tops. A single safely leaves 78 for your next visit."}],
-  "97_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 78", "note": "Stay on the 19s. A treble leaves Tops, and a single leaves 78."}],
-  "96_3": [{"type": "best", "route": "T20 → D18", "miss": "If S20 : Leaves 76", "note": "The standard power path. Treble 20 leaves 36. If you hit a single 20, you have 76 left and can just fire another treble 20 to leave 16."}],
-  "96_2": [{"type": "best", "route": "T20 → D18", "miss": "If S20 : Leaves 76", "note": "Two darts in hand, treble 20 gives you a shot at double 18. A single leaves 76."}],
-  "96_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 76", "note": "Hit the 20s. A treble leaves 36, and a single leaves 76."}],
-  "95_3": [
-    {"type": "best", "route": "T19 → D19", "miss": "If S19 : Leaves 76", "note": "The easiest way out. Treble 19 leaves double 19. A single 19 leaves 76, which you can fix with a treble 20."},
-    {"type": "alt", "route": "D25 → 13 → D16", "miss": "If 25 : Leaves 70", "note": "An exhibition play. Inner bull leaves 45, setting up a fat 13 for 32. Outer bull safely leaves 70, enabling T20 to D5."}
-  ],
-  "95_2": [{"type": "best", "route": "T19 → D19", "miss": "If S19 : Leaves 76", "note": "You must hit a treble here. Treble 19 gives you a look at double 19."}],
-  "95_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 76", "note": "Go for the 19s. A treble leaves 38, and a single leaves 76."}],
-  "94_3": [
-    {"type": "best", "route": "T18 → D20", "miss": "If S18 : Leaves 76", "note": "The best path to Tops. Treble 18 leaves 40. A single 18 leaves 76, allowing you to switch to treble 20."},
-    {"type": "alt", "route": "D25 → 12 → D16", "miss": "If 25 : Leaves 69", "note": "A brilliant center-board play. Inner bull leaves 44, setting up 12 for 32. Outer bull nicely leaves 69, allowing T19 to D6."}
-  ],
-  "94_2": [{"type": "best", "route": "T18 → D20", "miss": "If S18 : Leaves 76", "note": "Hit treble 18 for a shot at Tops. A single leaves 76 for next time."}],
-  "94_1": [{"type": "setup", "route": "T18", "miss": "If S18 : Leaves 76", "note": "Fire at the 18s. A treble leaves Tops, and a single leaves 76."}],
-  "93_3": [
-    {"type": "best", "route": "T19 → D18", "miss": "If S19 : Leaves 74", "note": "A perfect sequence. Treble 19 leaves 36. If you hit a single 19, you have 74 left, safely moving to treble 14 to leave 32."},
-    {"type": "alt", "route": "D25 → 11 → D16", "miss": "If 25 : Leaves 68", "note": "If you love the Bull. Inner bull leaves 43, setting up a safe 11 for 32. Outer bull leaves 68, enabling T16 to leave Tops."}
-  ],
-  "93_2": [{"type": "best", "route": "T19 → D18", "miss": "If S19 : Leaves 74", "note": "Treble 19 gets you a shot at double 18. A single leaves 74."}],
-  "93_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 74", "note": "The 19s are the best play. A treble leaves 36, and a single leaves 74."}],
-  "92_3": [
-    {"type": "best", "route": "T20 → D16", "miss": "If S20 : Leaves 72", "note": "The ultimate power route. Treble 20 leaves 32. If you hit a single 20 first, you have 72 left, letting you drop to treble 16."},
-    {"type": "best", "route": "D25 → 10 → D16", "miss": "If 25 : Leaves 67", "note": "The elite alternative to T20. Going for the Bull gives you a massive target. Inner Bull sets up 10 for 32. Outer Bull leaves 67, ensuring a guaranteed shot at a double (17 to the Bull, or T17 to D8)."}
-  ],
-  "92_2": [{"type": "best", "route": "T20 → D16", "miss": "If S20 : Leaves 72", "note": "Treble 20 gives you a shot at double 16. A single safely leaves 72."}],
-  "92_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 72", "note": "Smash the 20s. A treble leaves 32, and a single leaves 72."}],
-  "91_3": [
-    {"type": "best", "route": "T17 → D20", "miss": "If S17 : Leaves 74", "note": "Start on 17s. A treble leaves Tops. If your first dart is a single 17, you have 74 left, beautifully setting up treble 14 for 32."},
-    {"type": "alt", "route": "D25 → 9 → D16", "miss": "If 25 : Leaves 66", "note": "Inner Bull leaves 41, setting up a safe 9 for 32. Outer Bull leaves 66, enabling T14 for D12."}
-  ],
-  "91_2": [{"type": "best", "route": "T17 → D20", "miss": "If S17 : Leaves 74", "note": "Hit treble 17 for a shot at Tops. A single 17 leaves 74."}],
-  "91_1": [{"type": "setup", "route": "T17", "miss": "If S17 : Leaves 74", "note": "Aim at 17. A treble leaves Tops, and a single leaves a very clean 74."}],
-
-  // 90 TO 71 BLOCK
-  "90_3": [
-    {"type": "best", "route": "T18 → D18", "miss": "If S18 : Leaves 72", "note": "The standard path. Treble 18 leaves double 18. If you drop into the single, you have 72 left, requiring another treble to earn a shot at a double."},
-    {"type": "survival", "route": "T20 → D15", "miss": "If S20 : Leaves 70", "note": "The ultimate pressure route. T20 leaves 30, but a single 20 safely leaves 70. 70 is critical because it guarantees a dart at the Bullseye (via single 20) on your next throw."}
-  ],
-  "90_2": [{"type": "best", "route": "T18 → D18", "miss": "If S18 : Leaves 72", "note": "Treble 18 gets you a shot at the out. A single leaves 72 for next time."}],
-  "90_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 70", "note": "Fire at 20s. A single leaves 70, granting a guaranteed Bullseye bailout next visit. A single 18 leaves 72, which has no Bullseye safety net."}],
-  "89_3": [{"type": "best", "route": "T19 → D16", "miss": "If S19 : Leaves 70", "note": "Start on the 19s. A treble leaves 32. If you hit a single 19, you have 70 left, perfectly setting up a single 20 to the Bullseye to save the leg."}],
-  "89_2": [{"type": "best", "route": "T19 → D16", "miss": "If S19 : Leaves 70", "note": "Hit treble 19 and shoot at 32. A single leaves 70."}],
-  "89_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 70", "note": "Pound the 19s to set up your next turn. A single leaves a pristine 70."}],
-  "88_3": [
-    {"type": "best", "route": "T20 → D14", "miss": "If S20 : Leaves 68", "note": "The only route under pressure. Treble 20 leaves double 14. A single 20 leaves 68, which guarantees a shot at the Bullseye via a single 18."},
-    {"type": "avoid", "route": "T16 → D20", "miss": "If S16 : Leaves 72", "note": "A mathematically dead trap. Treble 16 leaves Tops, but a single 16 leaves 72. 72 requires a treble to finish. If your second dart hits a single, you are dead."}
-  ],
-  "88_2": [{"type": "best", "route": "T20 → D14", "miss": "If S20 : Leaves 68", "note": "Hit treble 20 for the out. A single safely leaves 68."}],
-  "88_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 68", "note": "Go for 20s. A single leaves 68, teeing up a guaranteed Bullseye pivot next visit."}],
-  "87_3": [{"type": "best", "route": "T17 → D18", "miss": "If S17 : Leaves 70", "note": "The perfect setup. Treble 17 leaves 36. If you miss and hit a single 17, you are left with 70, which opens up the single 20 to Bullseye safety net."}],
-  "87_2": [{"type": "best", "route": "T17 → D18", "miss": "If S17 : Leaves 70", "note": "Hit treble 17 to leave double 18. A single leaves 70 for your next visit."}],
-  "87_1": [{"type": "setup", "route": "T17", "miss": "If S17 : Leaves 70", "note": "Fire at the 17s. A treble leaves 36, and a single safely leaves 70."}],
-  "86_3": [{"type": "best", "route": "T18 → D16", "miss": "If S18 : Leaves 68", "note": "The standard route. Treble 18 leaves 32. If your first dart is a single 18, you have 68 left, guaranteeing a Bullseye shot via single 18."}],
-  "86_2": [{"type": "best", "route": "T18 → D16", "miss": "If S18 : Leaves 68", "note": "Two darts left, you need treble 18. A single leaves 68 for next time."}],
-  "86_1": [{"type": "setup", "route": "T18", "miss": "If S18 : Leaves 68", "note": "Aim at the 18s. A single leaves 68, guaranteeing a safe checkout path next turn."}],
-  "85_3": [
-    {"type": "best", "route": "T15 → D20", "miss": "If S15 : Leaves 70", "note": "A brilliant safe play. Treble 15 leaves Tops. If you hit a single 15, you have exactly 70 left, effortlessly securing a dart at the Bullseye."},
-    {"type": "alt", "route": "T19 → D14", "miss": "If S19 : Leaves 66", "note": "A solid bottom-board alternative. Treble 19 leaves 28, but a single 19 safely leaves 66, setting up a single 16 to the Bullseye."},
-    {"type": "alt", "route": "D25 → 15 → D10", "miss": "If 25 : Leaves 60", "note": "A great percentage play. Inner Bull leaves 35, setting up 15 for double 10. Outer Bull safely leaves 60, granting a clean single 20 to Tops."}
-  ],
-  "85_2": [{"type": "best", "route": "T15 → D20", "miss": "If S15 : Leaves 70", "note": "Hit treble 15 to earn a shot at Tops. A single leaves 70."}],
-  "85_1": [{"type": "setup", "route": "T15", "miss": "If S15 : Leaves 70", "note": "Stay on the 15s. A single leaves a very clean 70."}],
-  "84_3": [
-    {"type": "best", "route": "T20 → D12", "miss": "If S20 : Leaves 64", "note": "The classic power checkout. Treble 20 leaves 24. A single 20 leaves 64, giving you a guaranteed Bullseye shot via single 14."},
-    {"type": "alt", "route": "T16 → D18", "miss": "If S16 : Leaves 68", "note": "A great choice if you prefer 36 over 24. Treble 16 leaves double 18, and a single 16 safely leaves 68."},
-    {"type": "alt", "route": "D25 → 2 → D16", "miss": "If 25 : Leaves 59", "note": "The center-board percentage play. Inner Bull leaves 34, setting up 2 for 32. Outer Bull leaves 59, letting you hit single 19 for Tops."}
-  ],
-  "84_2": [{"type": "best", "route": "T20 → D12", "miss": "If S20 : Leaves 64", "note": "You have to hit treble 20 for a shot at double 12. A single leaves 64."}],
-  "84_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 64", "note": "Hit the 20s. A single leaves 64."}],
-  "83_3": [
-    {"type": "best", "route": "T17 → D16", "miss": "If S17 : Leaves 66", "note": "The smartest path. Treble 17 leaves 32. If you hit a single 17, you are on 66, which sets up single 16 to the Bullseye."},
-    {"type": "alt", "route": "D25 → 1 → D16", "miss": "If 25 : Leaves 58", "note": "The Bull percentage play. Inner Bull leaves 33, meaning single 1 leaves 32. Outer Bull leaves 58, teeing up single 18 for Tops."}
-  ],
-  "83_2": [{"type": "best", "route": "T17 → D16", "miss": "If S17 : Leaves 66", "note": "Go for treble 17. A single safely leaves 66 for next time."}],
-  "83_1": [{"type": "setup", "route": "T17", "miss": "If S17 : Leaves 66", "note": "Pound the 17s. A single leaves 66."}],
-  "82_3": [
-    {"type": "best", "route": "D25 → D16", "miss": "If 25 : Leaves 57", "note": "The ultimate percentage play. Aim dead center. The inner Bull leaves 32. If you hit the outer Bull, you have 57 left, letting you toss a single 17 to guarantee a shot at Tops."},
-    {"type": "alt", "route": "T14 → D20", "miss": "If S14 : Leaves 68", "note": "The traditional route. Treble 14 leaves Tops, and a single 14 safely leaves 68."}
-  ],
-  "82_2": [
-    {"type": "best", "route": "D25 → D16", "miss": "If 25 : Leaves 57", "note": "This guarantees a shot at a double if you hit anywhere in the center ring. Outer Bull leaves 57."},
-    {"type": "alt", "route": "T14 → D20", "miss": "If S14 : Leaves 68", "note": "A treble 14 gets you a look at Tops. A single leaves 68."}
-  ],
-  "82_1": [
-    {"type": "setup", "route": "D25", "miss": "If 25 : Leaves 57", "note": "Go for the Bullseye. It leaves 32, and the outer Bull leaves 57."},
-    {"type": "setup", "route": "T14", "miss": "If S14 : Leaves 68", "note": "If you don't like the Bull, hit 14s. A single safely leaves 68."}
-  ],
-  "81_3": [
-    {"type": "best", "route": "T19 → D12", "miss": "If S19 : Leaves 62", "note": "The standard line. Treble 19 leaves 24. If you hit a single 19, you have 62 left, granting a guaranteed Bullseye attempt via single 12."},
-    {"type": "alt", "route": "T15 → D18", "miss": "If S15 : Leaves 66", "note": "A great setup if you prefer 36. Treble 15 leaves double 18, and a single safely leaves 66."},
-    {"type": "alt", "route": "D25 → 15 → D8", "miss": "If 25 : Leaves 56", "note": "The Bull option. Inner Bull leaves 31, setting up 15 for double 8. Outer Bull leaves 56, letting you hit single 16 for Tops."}
-  ],
-  "81_2": [{"type": "best", "route": "T19 → D12", "miss": "If S19 : Leaves 62", "note": "Hit treble 19 to leave double 12. A single leaves 62 for your next visit."}],
-  "81_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 62", "note": "Stay on the 19s. A treble leaves 24, and a single leaves 62."}],
-  "80_3": [
-    {"type": "best", "route": "T20 → D10", "miss": "If S20 : Leaves 60", "note": "The smartest path. Treble 20 leaves double 10. A single 20 safely leaves 60, allowing a clean single 20 to Tops with no treble required."},
-    {"type": "avoid", "route": "T16 → D16", "miss": "If S16 : Leaves 64", "note": "A massive chart trap. Treble 16 looks great for 32, but a single 16 leaves 64. With two darts, 64 forces you to hit the Bullseye to save the leg. The 20s route completely avoids the Bull."}
-  ],
-  "80_2": [{"type": "best", "route": "T20 → D10", "miss": "If S20 : Leaves 60", "note": "Hit treble 20 for a shot at double 10. A single leaves 60 for your next turn."}],
-  "80_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 60", "note": "Smash the 20s. A single leaves exactly 60 for an easy two-dart combination next visit."}],
-  "79_3": [
-    {"type": "best", "route": "T19 → D11", "miss": "If S19 : Leaves 60", "note": "The only mathematically safe start. Treble 19 traps you on double 11, but a single 19 guarantees a clean out via a single 20 to Tops."},
-    {"type": "avoid", "route": "T13 → D20", "miss": "If S13 : Leaves 66", "note": "A devastating trap. Treble 13 leaves Tops, but a single 13 leaves 66. From 66, a single miss on your second dart leaves you with a dead turn and zero darts at a double."}
-  ],
-  "79_2": [{"type": "best", "route": "T19 → D11", "miss": "If S19 : Leaves 60", "note": "Hit treble 19. A single safely leaves 60."}],
-  "79_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 60", "note": "Aim at 19s. A single safely leaves 60."}],
-  "78_3": [{"type": "best", "route": "T18 → D12", "miss": "If S18 : Leaves 60", "note": "The absolute go-to route. Treble 18 leaves double 12. A single 18 leaves exactly 60, allowing a simple single 20 to Tops."}],
-  "78_2": [{"type": "best", "route": "T18 → D12", "miss": "If S18 : Leaves 60", "note": "Hit treble 18 for a shot at 24. A single leaves 60."}],
-  "78_1": [{"type": "setup", "route": "T18", "miss": "If S18 : Leaves 60", "note": "Go for the 18s. A single perfectly leaves 60."}],
-  "77_3": [
-    {"type": "best", "route": "T19 → D10", "miss": "If S19 : Leaves 58", "note": "A reliable, bulletproof start. Treble 19 leaves double 10. If you hit a single 19, you have 58 left, cleanly setting up single 18 to Tops."},
-    {"type": "avoid", "route": "T15 → D16", "miss": "If S15 : Leaves 62", "note": "Looks nice for 32, but it wastes a dart. A single 15 leaves 62, forcing a high-pressure Bullseye bailout that risks trapping you on D13. The 19s path avoids the Bull entirely."}
-  ],
-  "77_2": [{"type": "best", "route": "T19 → D10", "miss": "If S19 : Leaves 58", "note": "Treble 19 gives you a look at double 10. A single safely leaves 58."}],
-  "77_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 58", "note": "Stay on the 19s. A single leaves 58, ensuring you don't need a treble on your next visit."}],
-  "76_3": [
-    {"type": "best", "route": "T20 → D8", "miss": "If S20 : Leaves 56", "note": "The main power line. Treble 20 leaves double 8. A single 20 leaves 56, so just drop a single 16 to leave Tops."},
-    {"type": "alt", "route": "T16 → D14", "miss": "If S16 : Leaves 60 | If S8 : Leaves 68 | If S7 : Leaves 69", "note": "Greg Lewis's brilliant pressure route. Treble 16 leaves double 14. If you miss sideways into the 8 or 7, you leave 68 or 69—both guarantee a shot at the Bullseye."}
-  ],
-  "76_2": [{"type": "best", "route": "T20 → D8", "miss": "If S20 : Leaves 56", "note": "Go for treble 20. A single safely leaves 56 for next time."}],
-  "76_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 56", "note": "Smash the 20s. A single leaves 56, setting up a clean 16s route next turn."}],
-  "75_3": [{"type": "best", "route": "T17 → D12", "miss": "If S17 : Leaves 58", "note": "The standard parity path. Treble 17 leaves 24. A single 17 leaves 58, meaning you just throw a single 18 for Tops."}],
-  "75_2": [
-    {"type": "best", "route": "T17 → D12", "miss": "If S17 : Leaves 58", "note": "Hit treble 17 for a shot at 24. A single leaves 58."},
-    {"type": "alt", "route": "25 → D25", "miss": "If D25 : Leaves 25", "note": "A gritty two-dart percentage play. Hitting the outer Bull (25) perfectly leaves 50 for the inner Bull."}
-  ],
-  "75_1": [{"type": "setup", "route": "T17", "miss": "If S17 : Leaves 58", "note": "Aim at 17. A single safely leaves 58."}],
-  "74_3": [
-    {"type": "best", "route": "T14 → D16", "miss": "If S14 : Leaves 60", "note": "The absolute best route to 32. Treble 14 leaves double 16. If your first dart is a single 14, you have exactly 60 left for a single 20 to Tops."},
-    {"type": "alt", "route": "T18 → D10", "miss": "If S18 : Leaves 56", "note": "A solid second choice. Treble 18 leaves double 10, and a single 18 securely leaves 56 (single 16 to Tops)."}
-  ],
-  "74_2": [
-    {"type": "best", "route": "T14 → D16", "miss": "If S14 : Leaves 60", "note": "Treble 14 gets you a shot at 32. A single safely leaves 60."},
-    {"type": "alt", "route": "T18 → D10", "miss": "If S18 : Leaves 56", "note": "Hit treble 18 for 20. A single leaves 56."}
-  ],
-  "74_1": [{"type": "setup", "route": "T14", "miss": "If S14 : Leaves 60", "note": "Hit the 14s. A single leaves exactly 60."}],
-  "73_3": [{"type": "best", "route": "T19 → D8", "miss": "If S19 : Leaves 54", "note": "Always start on 19. Treble 19 leaves double 8. A single 19 leaves 54, so you just hit a single 14 to set up Tops."}],
-  "73_2": [{"type": "best", "route": "T19 → D8", "miss": "If S19 : Leaves 54", "note": "Go for treble 19. A single leaves 54 for next time."}],
-  "73_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 54", "note": "Pound the 19s. A single leaves 54."}],
-  "72_3": [
-    {"type": "best", "route": "T16 → D12", "miss": "If S16 : Leaves 56", "note": "The smartest line. Treble 16 leaves double 12. A single 16 leaves 56, allowing you to drop another single 16 for Tops."},
-    {"type": "alt", "route": "T12 → D18", "miss": "If S12 : Leaves 60", "note": "A highly resilient alternative. Treble 12 leaves double 18, and a single 12 safely leaves exactly 60."},
-    {"type": "alt", "route": "T20 → D6", "miss": "If S20 : Leaves 52", "note": "If you insist on 20s, treble 20 leaves double 6. A single 20 leaves 52, meaning you need a single 12 for Tops."}
-  ],
-  "72_2": [
-    {"type": "best", "route": "T16 → D12", "miss": "If S16 : Leaves 56", "note": "Hit treble 16 to get a shot at 24. A single safely leaves 56."},
-    {"type": "alt", "route": "T12 → D18", "miss": "If S12 : Leaves 60", "note": "Hit treble 12 for double 18. A single leaves 60."}
-  ],
-  "72_1": [{"type": "setup", "route": "T16", "miss": "If S16 : Leaves 56", "note": "Aim at 16s. A single leaves 56."}],
-  "71_3": [
-    {"type": "best", "route": "T13 → D16", "miss": "If S13 : Leaves 58", "note": "The premier setup for 32. Treble 13 leaves double 16. If your first dart is a single 13, you have 58 left, making it a simple single 18 to Tops."},
-    {"type": "alt", "route": "T17 → D10", "miss": "If S17 : Leaves 54", "note": "An excellent alternative if you prefer the bottom board. Treble 17 leaves double 10, and a single 17 safely leaves 54."}
-  ],
-  "71_2": [{"type": "best", "route": "T13 → D16", "miss": "If S13 : Leaves 58", "note": "Treble 13 gives you a look at 32. A single leaves 58 for next time."}],
-  "71_1": [{"type": "setup", "route": "T13", "miss": "If S13 : Leaves 58", "note": "Hit the 13s. A single safely leaves 58."}],
-
-  // 70 TO 61 BLOCK
-  "70_3": [
-    {"type": "best", "route": "T18 → D8", "miss": "If S18 : Leaves 52", "note": "The standard power path. Treble 18 leaves 16. A single 18 leaves 52, meaning you just drop a single 20 to set up double 16."},
-    {"type": "alt", "route": "T10 → D20", "miss": "If S10 : Leaves 60", "note": "If you want Tops, hit treble 10. A single 10 safely leaves 60, meaning you just drop a single 20 to earn your double."}
-  ],
-  "70_2": [
-    {"type": "survival", "route": "T20 → D5", "miss": "If S20 : Leaves 50", "note": "The only route that survives a single miss. A single 20 leaves 50, granting a guaranteed dart at the Bullseye."},
-    {"type": "avoid", "route": "T18 → D8", "miss": "If S18 : Leaves 52", "note": "A total two-dart trap. Treble 18 leaves double 8, but a single 18 leaves 52. With only one dart left, 52 is a dead turn."}
-  ],
-  "70_1": [{"type": "setup", "route": "T20", "miss": "If S20 : Leaves 50", "note": "Aim at the 20s. A single leaves 50, teeing up a clean Bullseye combination for your next visit."}],
-  "69_3": [
-    {"type": "best", "route": "T15 → D12", "miss": "If S15 : Leaves 54", "note": "Start on the 15s. A treble leaves 24. A single 15 leaves 54, so you just hit a single 14 to leave Tops."},
-    {"type": "survival", "route": "T19 → D6", "miss": "If S19 : Leaves 50", "note": "A brilliant bailout. A single 19 perfectly leaves the Bullseye to save the turn, but a treble forces a shot at double 6."}
-  ],
-  "69_2": [{"type": "best", "route": "T19 → D6", "miss": "If S19 : Leaves 50", "note": "The ultimate pressure route. If you miss and hit the single 19, you perfectly leave the Bullseye for your final dart."}],
-  "69_1": [{"type": "setup", "route": "T19", "miss": "If S19 : Leaves 50", "note": "Pound the 19s. A single leaves exactly 50 for a clean out next visit."}],
-  "68_3": [
-    {"type": "best", "route": "T20 → D4", "miss": "If S20 : Leaves 48", "note": "The main route. Treble 20 leaves 8. A single 20 leaves 48, so just hit a single 16 to leave 32."},
-    {"type": "alt", "route": "T12 → D16", "miss": "If S12 : Leaves 56", "note": "A highly neglected but brilliant option. Treble 12 leaves 32. A single 12 leaves 56, letting you comfortably hit a single 16 for Tops."}
-  ],
-  "68_2": [
-    {"type": "survival", "route": "T18 → D7", "miss": "If S18 : Leaves 50", "note": "The ultimate two-dart survival shot. A single 18 guarantees a shot at the Bullseye. If you hit the treble, you still get a dart at double 7."},
-    {"type": "avoid", "route": "T20 → D4", "miss": "If S20 : Leaves 48", "note": "A terrible two-dart choice. A single 20 leaves 48, meaning your turn is over without a single throw at a double."}
-  ],
-  "68_1": [{"type": "setup", "route": "T18", "miss": "If S18 : Leaves 50", "note": "Fire at the 18s. A single safely leaves 50 for the next turn."}],
-  "67_3": [
-    {"type": "best", "route": "T17 → D8", "miss": "If S17 : Leaves 50", "note": "The only smart start. A treble leaves 16. A single 17 leaves 50, meaning you can drop a single 10 to leave Tops, or just fire at the Bullseye."}
-  ],
-  "67_2": [{"type": "best", "route": "T17 → D8", "miss": "If S17 : Leaves 50", "note": "A guaranteed shot at a double. A single 17 leaves the Bullseye, and a treble perfectly leaves 16."}],
-  "67_1": [{"type": "setup", "route": "T17", "miss": "If S17 : Leaves 50", "note": "Aim at 17. A single perfectly leaves the Bullseye for your next trip to the board."}],
-  "66_3": [
-    {"type": "best", "route": "T10 → D18", "miss": "If S10 : Leaves 56", "note": "The smartest path. Treble 10 leaves 36. A single 10 leaves 56, letting you hit a single 16 for Tops."},
-    {"type": "alt", "route": "T14 → D12", "miss": "If S14 : Leaves 52", "note": "Start on 14s. Treble leaves 24, and a single leaves 52 to seamlessly set up a single 12 for Tops."},
-    {"type": "alt", "route": "25 → D8", "miss": "If D25 : Leaves 16", "note": "The expert Bull option. The inner Bull leaves 16. The outer Bull leaves 41, letting you toss a single 9 to leave 32."}
-  ],
-  "66_2": [
-    {"type": "survival", "route": "T16 → D9", "miss": "If S16 : Leaves 50", "note": "The bailout line. A single 16 guarantees a shot at the Bullseye. Hitting the treble gives you double 9."},
-    {"type": "avoid", "route": "T10 → D18", "miss": "If S10 : Leaves 56", "note": "A massive two-dart trap. A single 10 leaves 56. 56 cannot be checked out with one dart, meaning your turn is instantly dead."}
-  ],
-  "66_1": [{"type": "setup", "route": "T16", "miss": "If S16 : Leaves 50", "note": "Go for 16s. A single leaves exactly 50."}],
-  "65_3": [
-    {"type": "best", "route": "T11 → D16", "miss": "If S11 : Leaves 54", "note": "A very clean parity route. Treble 11 leaves 32. A single 11 leaves 54, so you just hit a single 14 to leave Tops."},
-    {"type": "alt", "route": "25 → D20", "miss": "If D25 : Leaves 15", "note": "The center board option. The outer Bull leaves 40. If you hit the inner Bull, you have 15 left for a single 7 to double 4."}
-  ],
-  "65_2": [
-    {"type": "survival", "route": "T15 → D10", "miss": "If S15 : Leaves 50", "note": "The ultimate pressure play. A single 15 guarantees a shot at the Bullseye. If you hit the treble, you get a dart at double 10."},
-    {"type": "avoid", "route": "25 → D20", "miss": "If D25 : Leaves 15", "note": "Too hazardous with two darts. If your first dart grabs the inner Bull, you have 15 left and no darts for a double."}
-  ],
-  "65_1": [{"type": "setup", "route": "T15", "miss": "If S15 : Leaves 50", "note": "Pound the 15s. A single perfectly leaves 50."}],
-  "64_3": [{"type": "best", "route": "T16 → D8", "miss": "If S16 : Leaves 48", "note": "The classic power line. Treble 16 leaves 16. A single 16 leaves 48, so just hit another single 16 for 32."}],
-  "64_2": [
-    {"type": "survival", "route": "T14 → D11", "miss": "If S14 : Leaves 50", "note": "The ultimate bailout. A single 14 leaves the Bullseye. A treble forces double 11, but under pressure, getting a dart at an out is all that matters."},
-    {"type": "avoid", "route": "T16 → D8", "miss": "If S16 : Leaves 48", "note": "A fatal two-dart trap. Treble 16 leaves 16, but a single 16 leaves 48. Your turn dies immediately on a single miss."}
-  ],
-  "64_1": [{"type": "setup", "route": "T16", "miss": "If S16 : Leaves 48", "note": "Hit the 16s. A single leaves 48, meaning you just stay on the 16s for a clean out next turn."}],
-  "63_3": [
-    {"type": "best", "route": "T13 → D12", "miss": "If S13 : Leaves 50", "note": "The absolute main route. Treble 13 leaves 24. A single 13 leaves 50, so just drop a single 10 to leave Tops, or fire right at the Bull."},
-    {"type": "alt", "route": "T17 → D6", "miss": "If S17 : Leaves 46", "note": "Starts you at the bottom. Treble 17 leaves 12. A single 17 leaves 46, letting you hit a single 6 to leave Tops."}
-  ],
-  "63_2": [{"type": "best", "route": "T13 → D12", "miss": "If S13 : Leaves 50", "note": "A guaranteed dart at a double. A single 13 leaves the Bullseye, and a treble safely leaves 24."}],
-  "63_1": [{"type": "setup", "route": "T13", "miss": "If S13 : Leaves 50", "note": "Hit the 13s. A single perfectly leaves the Bullseye."}],
-  "62_3": [
-    {"type": "best", "route": "T10 → D16", "miss": "If S10 : Leaves 52", "note": "The best path to 32. Treble 10 leaves 32. A single 10 leaves 52, meaning you just hit a single 12 for Tops."},
-    {"type": "alt", "route": "T14 → D10", "miss": "If S14 : Leaves 48", "note": "A solid backup. Treble 14 leaves 20. A single 14 leaves 48, setting up a single 16 for 32."}
-  ],
-  "62_2": [
-    {"type": "survival", "route": "T12 → D13", "miss": "If S12 : Leaves 50", "note": "The only route that guarantees survival. A single 12 leaves the Bullseye. A treble forces double 13, but saves the leg."},
-    {"type": "avoid", "route": "T10 → D16", "miss": "If S10 : Leaves 52", "note": "A severe two-dart trap. A single 10 leaves 52. 52 cannot be checked out with one dart, making it a dead turn."}
-  ],
-  "62_1": [{"type": "setup", "route": "T12", "miss": "If S12 : Leaves 50", "note": "Go for the 12s. A single safely leaves 50."}],
-  "61_3": [
-    {"type": "best", "route": "T15 → D8", "miss": "If S15 : Leaves 46", "note": "The safest line. Treble 15 leaves 16. A single 15 leaves 46, so you just drop a single 6 for Tops."},
-    {"type": "alt", "route": "25 → D18", "miss": "If D25 : Leaves 11", "note": "The Bullseye play. The outer Bull leaves 36. An inner Bull leaves 11, meaning you have to find a single 3 for double 4."}
-  ],
-  "61_2": [
-    {"type": "survival", "route": "T11 → D14", "miss": "If S11 : Leaves 50", "note": "The ultimate two-dart pressure route. A single 11 guarantees a shot at the Bullseye. A treble leaves double 14."},
-    {"type": "avoid", "route": "T15 → D8", "miss": "If S15 : Leaves 46", "note": "A dead-turn trap. A single 15 leaves 46. With one dart left, 46 is completely unfinishable."},
-    {"type": "avoid", "route": "25 → D18", "miss": "If D25 : Leaves 11", "note": "Too dangerous with two darts. If your first dart finds the inner Bull, you leave 11 and kill the checkout."}
-  ],
-  "61_1": [{"type": "setup", "route": "T11", "miss": "If S11 : Leaves 50", "note": "Pound the 11s. A single perfectly leaves 50 for your next visit."}],
-
-   // 60 to 51 block
-  "60_3": [{"type": "best", "route": "S20 → D20", "miss": "If S5 : S15 → D20", "note": "The straightforward shot at Tops. A single 20 gives you two darts at the double, but be highly aware that a stray treble immediately busts the turn."}],
-  "60_2": [{"type": "best", "route": "S20 → D20", "miss": "If S5 : Leaves 55", "note": "With two darts, just lay up a single 20. If you accidentally hit the 5, you safely leave 55."}],
-  "60_1": [{"type": "setup", "route": "S20", "miss": "If S5 : Leaves 55", "note": "One dart left, lay up on the single 20. A treble completely busts the turn, so aim low."}],
-  "59_3": [{"type": "best", "route": "S19 → D20", "miss": "If T19 : D1 | If S3 : S16 → D20", "note": "Drop a single 19 for Tops. If you accidentally hit the treble, you still get a dart at double 1."}],
-  "59_2": [{"type": "best", "route": "S19 → D20", "miss": "If T19 : D1 | If S3 : Leaves 56", "note": "A single 19 earns you a shot at Tops. If you hit the treble, you can still fire at double 1."}],
-  "59_1": [{"type": "setup", "route": "S19", "miss": "If T19 : Leaves 2 | If S3 : Leaves 56", "note": "Aim at the 19s. A single leaves 40, and an accidental treble safely leaves 2."}],
-  "58_3": [{"type": "best", "route": "S18 → D20", "miss": "If T18 : D2 | If S4 : S14 → D20", "note": "A single 18 leaves Tops. If you pull it into the treble, you still have a dart at double 2."}],
-  "58_2": [{"type": "best", "route": "S18 → D20", "miss": "If T18 : D2 | If S4 : Leaves 54", "note": "Go for the single 18. An accidental treble still gives you a throw at double 2."}],
-  "58_1": [{"type": "setup", "route": "S18", "miss": "If T18 : Leaves 4 | If S4 : Leaves 54", "note": "Throw at 18s. A single leaves 40, and a treble leaves a very usable 4."}],
-  "57_3": [{"type": "best", "route": "S17 → D20", "miss": "If T17 : D3 | If S2 : S15 → D20", "note": "Hit the single 17 to set up Tops. If you hit the treble by mistake, you get a shot at double 3."}],
-  "57_2": [{"type": "best", "route": "S17 → D20", "miss": "If T17 : D3 | If S2 : Leaves 55", "note": "Aim for single 17. The treble gives you a dart at double 3, keeping the leg alive."}],
-  "57_1": [{"type": "setup", "route": "S17", "miss": "If T17 : Leaves 6 | If S2 : Leaves 55", "note": "Hit 17s. A single leaves 40, and a treble leaves 6."}],
-  "56_3": [{"type": "best", "route": "S16 → D20", "miss": "If T16 : D4 | If S8 : S16 → D16", "note": "A single 16 gives you Tops. If you smash the treble, you still get a dart at double 4."}],
-  "56_2": [{"type": "best", "route": "S16 → D20", "miss": "If T16 : D4 | If S8 : Leaves 48", "note": "Go for single 16. If you slip into the treble, you still have a shot at double 4."}],
-  "56_1": [{"type": "setup", "route": "S16", "miss": "If T16 : Leaves 8 | If S8 : Leaves 48", "note": "Aim at the 16s. A single leaves 40, and a treble safely leaves 8."}],
-  "55_3": [{"type": "best", "route": "S15 → D20", "miss": "If T15 : D5 | If S10 : S13 → D16", "note": "A single 15 sets up Tops. An accidental treble leaves you a shot at double 5."}],
-  "55_2": [{"type": "best", "route": "S15 → D20", "miss": "If T15 : D5 | If S10 : Leaves 45", "note": "Hit single 15 to leave Tops. A treble gives you a dart at double 5."}],
-  "55_1": [{"type": "setup", "route": "S15", "miss": "If T15 : Leaves 10 | If S10 : Leaves 45", "note": "Throw at 15s. A single leaves 40, and a treble leaves 10."}],
-  "54_3": [{"type": "best", "route": "S14 → D20", "miss": "If T14 : D6 | If S9 : S13 → D16", "note": "Single 14 leaves Tops. If you hit the treble, you still get a look at double 6."}],
-  "54_2": [{"type": "best", "route": "S14 → D20", "miss": "If T14 : D6 | If S9 : Leaves 45", "note": "Aim for single 14. An accidental treble leaves you a shot at double 6."}],
-  "54_1": [{"type": "setup", "route": "S14", "miss": "If T14 : Leaves 12 | If S9 : Leaves 45", "note": "Go for 14s. A single leaves 40, and a treble leaves 12."}],
-  "53_3": [{"type": "best", "route": "S13 → D20", "miss": "If T13 : D7 | If S4 : S17 → D16", "note": "A single 13 leaves Tops. Hitting the treble gives you a shot at double 7."}],
-  "53_2": [{"type": "best", "route": "S13 → D20", "miss": "If T13 : D7 | If S4 : Leaves 49", "note": "Hit single 13 for Tops. A treble still gives you a throw at double 7."}],
-  "53_1": [{"type": "setup", "route": "S13", "miss": "If T13 : Leaves 14 | If S4 : Leaves 49", "note": "Aim at the 13s. A single leaves 40, and a treble leaves 14."}],
-  "52_3": [
-    {"type": "best", "route": "S12 → D20", "miss": "If T12 : D8 | If S5 : S15 → D16", "note": "The mathematically sound play. Single 12 leaves Tops, and a treble perfectly leaves 16 (D8). You have zero bust risk."},
-    {"type": "avoid", "route": "S20 → D16", "miss": "If S5 : S15 → D16", "note": "A fatal trap. Single 20 leaves 32, but an accidental treble 20 immediately busts your turn. Never risk a bust when a treble-safe alternative exists."}
-  ],
-  "52_2": [
-    {"type": "best", "route": "S12 → D20", "miss": "If T12 : D8 | If S5 : Leaves 47", "note": "Hit single 12 for Tops. An accidental treble safely leaves you a dart at double 8."},
-    {"type": "avoid", "route": "S20 → D16", "miss": "If S5 : Leaves 47", "note": "A single 20 leaves 32, but hitting the treble busts the turn. Do not play this."}
-  ],
-  "52_1": [{"type": "setup", "route": "S12", "miss": "If T12 : Leaves 16 | If S5 : Leaves 47", "note": "Go for 12s. A single leaves 40, and a treble leaves 16."}],
-  "51_3": [
-    {"type": "best", "route": "S11 → D20", "miss": "If T11 : D9 | If S14 : S17 → D10", "note": "Single 11 leaves Tops. If you hit the treble, you still get a shot at double 9."},
-    {"type": "alt", "route": "S15 → D18", "miss": "If T15 : D3 | If S10 : S9 → D16", "note": "A great path if you prefer 36. A single 15 leaves double 18, and a treble safely leaves double 3."}
-  ],
-  "51_2": [
-    {"type": "best", "route": "S11 → D20", "miss": "If T11 : D9 | If S14 : Leaves 37", "note": "Hit single 11 for Tops. An accidental treble still gives you a throw at double 9."},
-    {"type": "alt", "route": "S15 → D18", "miss": "If T15 : D3 | If S10 : Leaves 41", "note": "Hit single 15 to leave 36. A treble safely leaves double 3."}
-  ],
-  "51_1": [{"type": "setup", "route": "S11", "miss": "If T11 : Leaves 18 | If S14 : Leaves 37", "note": "Throw at 11s. A single leaves 40, and a treble leaves 18."}],
-
-  // 50 TO 41 BLOCK
-  "50_3": [{"type": "best", "route": "D25", "miss": "If 25 : S9 → D8 | If 25 → S1 : D12", "note": "Aim dead center for the win. If you hit the outer Bull, you have 25 left, letting you toss a single 9 to leave double 8."}],
-  "50_2": [{"type": "best", "route": "D25", "miss": "If 25 : Leaves 25", "note": "Go for the Bullseye. If you hit the outer Bull, you won't have enough darts to finish, but you safely leave 25 for your next turn."}],
-  "50_1": [{"type": "best", "route": "D25", "miss": "If 25 : Leaves 25", "note": "One dart left, only one target matters. Smash the center."}],
-  "49_3": [
-    {"type": "best", "route": "S9 → D20", "miss": "If T9 : D11 | If S12 : S5 → D16", "note": "A single 9 sets up Tops perfectly. If you accidentally smash the treble, you still get a dart at double 11."},
-    {"type": "avoid", "route": "S17 → D16", "miss": "If S2 : S15 → D20", "note": "A mathematical bust trap. A single 17 leaves 32, but an accidental treble 17 (51 points) immediately busts your score. Never risk a bust when a treble-safe alternative exists."}
-  ],
-  "49_2": [
-    {"type": "best", "route": "S9 → D20", "miss": "If T9 : D11", "note": "Hit single 9 for a shot at Tops. An accidental treble safely leaves double 11."},
-    {"type": "avoid", "route": "S17 → D16", "miss": "If S2 : Leaves 45", "note": "Go for single 17 to leave 32, but be warned: hitting the treble instantly kills your turn."}
-  ],
-  "49_1": [{"type": "setup", "route": "S9", "miss": "If T9 : Leaves 22", "note": "Aim at the 9s. A single safely leaves 40, and a treble leaves 22."}],
-  "48_3": [
-    {"type": "best", "route": "S8 → D20", "miss": "If T8 : D12 | If S16 : S16 → D16", "note": "The smartest mathematical path. A single 8 leaves Tops, and a treble gives you a shot at double 12. You have zero bust risk."},
-    {"type": "avoid", "route": "S16 → D16", "miss": "If S8 : S20 → D10", "note": "A major bust trap. A single 16 gives you two darts at 32, but if your dart slips into the treble 16 (48 points), you bust the turn immediately."}
-  ],
-  "48_2": [
-    {"type": "best", "route": "S8 → D20", "miss": "If T8 : D12 | If S16 : D16", "note": "Hit single 8 for Tops. A treble safely gives you a dart at double 12. If you drift into the 16, you still get a shot at double 16."},
-    {"type": "avoid", "route": "S16 → D16", "miss": "If S8 : D20", "note": "Go for single 16 to leave 32, but an accidental treble completely busts the checkout."}
-  ],
-  "48_1": [{"type": "setup", "route": "S8", "miss": "If T8 : Leaves 24 | If S16 : Leaves 32", "note": "Hit single 8. A single leaves Tops, an accidental 16 safely leaves 32, and a treble 8 leaves 24."}],
-  "47_3": [
-    {"type": "best", "route": "S15 → D16", "miss": "If T15 : D1 | If S10 : S5 → D16", "note": "Single 15 leaves 32. If you hit the treble, you still get a throw at double 1 to save the leg."},
-    {"type": "alt", "route": "S7 → D20", "miss": "If T7 : D13 | If S19 : S14 → D7", "note": "A single 7 sets up Tops. An accidental treble leaves you a shot at double 13."}
-  ],
-  "47_2": [
-    {"type": "best", "route": "S15 → D16", "miss": "If T15 : D1", "note": "Hit single 15 for 32. A treble gives you a dart at double 1."},
-    {"type": "alt", "route": "S7 → D20", "miss": "If T7 : D13", "note": "Go for single 7 to leave Tops. A treble safely leaves double 13."}
-  ],
-  "47_1": [{"type": "setup", "route": "S15", "miss": "If T15 : Leaves 2", "note": "Aim at the 15s. A single leaves 32, and a treble safely leaves 2."}],
-  "46_3": [
-    {"type": "best", "route": "S14 → D16", "miss": "If T14 : D2 | If S9 : S5 → D16", "note": "Hit a single 14 to leave 32. If you smash the treble, you still have a dart at double 2."},
-    {"type": "alt", "route": "S6 → D20", "miss": "If T6 : D14 | If S10 : S18 → D9", "note": "A single 6 leaves Tops. Hitting the treble gives you a shot at double 14."}
-  ],
-  "46_2": [
-    {"type": "best", "route": "S14 → D16", "miss": "If T14 : D2", "note": "Go for single 14. An accidental treble gives you a throw at double 2."},
-    {"type": "alt", "route": "S6 → D20", "miss": "If T6 : D14", "note": "Hit single 6 to leave Tops. A treble leaves double 14."}
-  ],
-  "46_1": [{"type": "setup", "route": "S14", "miss": "If T14 : Leaves 4", "note": "Throw at 14s. A single leaves 32, and a treble safely leaves 4."}],
-  "45_3": [
-    {"type": "best", "route": "S13 → D16", "miss": "If T13 : D3 | If S4 : S9 → D16", "note": "A single 13 leaves 32. If you slip into the treble, you still get a dart at double 3."},
-    {"type": "alt", "route": "S5 → D20", "miss": "If T5 : D15 | If S20 : S9 → D8", "note": "Hit a single 5 to leave Tops. A treble safely leaves a shot at double 15."}
-  ],
-  "45_2": [
-    {"type": "best", "route": "S13 → D16", "miss": "If T13 : D3", "note": "Hit single 13 to leave 32. A treble gives you a dart at double 3."},
-    {"type": "alt", "route": "S5 → D20", "miss": "If T5 : D15", "note": "Go for single 5 to leave Tops. An accidental treble gives you a throw at double 15."}
-  ],
-  "45_1": [{"type": "setup", "route": "S13", "miss": "If T13 : Leaves 6", "note": "Aim at the 13s. A single leaves 32, and a treble safely leaves 6."}],
-  "44_3": [
-    {"type": "best", "route": "S12 → D16", "miss": "If T12 : D4 | If S9 : S3 → D16", "note": "The perfect setup. A single 12 leaves 32, and an accidental treble safely leaves double 4."},
-    {"type": "alt", "route": "S4 → D20", "miss": "If T4 : D16 | If S18 : S13 → D13", "note": "If you want Tops, a single 4 gets you there. A treble brilliantly leaves you double 16."}
-  ],
-  "44_2": [
-    {"type": "best", "route": "S12 → D16", "miss": "If T12 : D4", "note": "Hit single 12 for 32. An accidental treble perfectly leaves a shot at double 4."},
-    {"type": "alt", "route": "S4 → D20", "miss": "If T4 : D16", "note": "Go for single 4 to leave Tops. A treble beautifully leaves a perfect double 16."}
-  ],
-  "44_1": [{"type": "setup", "route": "S12", "miss": "If T12 : Leaves 8", "note": "Hit the 12s. A single leaves 32, and a treble perfectly leaves 8."}],
-  "43_3": [
-    {"type": "best", "route": "S11 → D16", "miss": "If T11 : D5 | If S14 : S13 → D8", "note": "Hit a single 11 to leave 32. If you hit the treble, you avoid the D17 trap and get a solid shot at double 5."},
-    {"type": "alt", "route": "S3 → D20", "miss": "If T3 : D17 | If S19 : S12 → D6", "note": "A single 3 leaves Tops. Hitting the treble leaves you a dart at the awkward double 17."}
-  ],
-  "43_2": [
-    {"type": "best", "route": "S11 → D16", "miss": "If T11 : D5", "note": "Hit single 11 to leave 32. A treble cleanly leaves a dart at double 5."},
-    {"type": "alt", "route": "S3 → D20", "miss": "If T3 : D17", "note": "Go for single 3. An accidental treble gives you a throw at double 17."}
-  ],
-  "43_1": [{"type": "setup", "route": "S11", "miss": "If T11 : Leaves 10", "note": "Throw at 11s. A single leaves 32, and a treble safely leaves 10."}],
-  "42_3": [
-    {"type": "best", "route": "S10 → D16", "miss": "If T10 : D6 | If S15 : S11 → D8", "note": "A single 10 leaves 32. If you slip into the treble, you still have a dart at double 6."},
-    {"type": "alt", "route": "S6 → D18", "miss": "If T6 : D12 | If S10 : S16 → D8", "note": "An elite alternative parity path. A single 6 leaves 36, and a treble flawlessly leaves double 12."},
-    {"type": "alt", "route": "S2 → D20", "miss": "If T2 : D18 | If S15 : S11 → D8", "note": "Hit a single 2 to leave Tops. If you hit the treble, it perfectly leaves double 18."}
-  ],
-  "42_2": [
-    {"type": "best", "route": "S10 → D16", "miss": "If T10 : D6", "note": "Hit single 10 for 32. A treble gives you a dart at double 6."},
-    {"type": "alt", "route": "S6 → D18", "miss": "If T6 : D12", "note": "Hit single 6 for 36. An accidental treble safely leaves double 12."},
-    {"type": "alt", "route": "S2 → D20", "miss": "If T2 : D18", "note": "Go for single 2 to leave Tops. An accidental treble beautifully leaves double 18."}
-  ],
-  "42_1": [{"type": "setup", "route": "S10", "miss": "If T10 : Leaves 12", "note": "Aim at the 10s. A single leaves 32, and a treble safely leaves 12."}],
-  "41_3": [
-    {"type": "best", "route": "S9 → D16", "miss": "If T9 : D7 | If S14 : S11 → D8", "note": "Single 9 leaves 32. If you hit the treble, you still have a shot at double 7."},
-    {"type": "alt", "route": "S1 → D20", "miss": "If T1 : D19 | If S20 : S5 → D8", "note": "Hit a single 1 to set up Tops. If you pull it into the treble, you get a dart at double 19."}
-  ],
-  "41_2": [
-    {"type": "best", "route": "S9 → D16", "miss": "If T9 : D7", "note": "Hit single 9 for 32. A treble leaves you a dart at double 7."},
-    {"type": "alt", "route": "S1 → D20", "miss": "If T1 : D19", "note": "Go for single 1 to leave Tops. An accidental treble gives you a throw at double 19."}
-  ],
-  "41_1": [{"type": "setup", "route": "S9", "miss": "If T9 : Leaves 14", "note": "Aim at 9s. A single leaves 32, and a treble safely leaves 14."}],
-  // 40 TO 2 BLOCK
-  "40_3": [{"type": "best", "route": "D20", "miss": "If S20 : D10", "note": "The best double on the board. Smash Tops. If you drop low into the single 20, you still have two darts to clean up double 10."}],
-  "40_2": [{"type": "best", "route": "D20", "miss": "If S20 : D10", "note": "Fire at Tops. A single 20 cleanly leaves you a dart at double 10."}],
-  "40_1": [{"type": "best", "route": "D20", "miss": "If S20 : Leaves 20", "note": "One dart left, hit Tops for the leg."}],
-  "39_3": [
-    {"type": "best", "route": "S7 → D16", "miss": "If T7 : D9 | If S19 : D10", "note": "Hit single 7 to set up 32. If you hit the treble by mistake, you still have a shot at double 9, and a stray 19 perfectly leaves double 10."},
-    {"type": "alt", "route": "S3 → D18", "miss": "If T3 : D15 | If S19 : D10", "note": "An alternative parity path. A single 3 leaves 36, a treble smoothly leaves double 15, and drifting into 19 cleanly leaves double 10."},
-    {"type": "avoid", "route": "S19 → D10", "miss": "If S3 : D18", "note": "A fatal chart trap. A single 19 leaves 20, but an accidental treble 19 instantly busts your turn. Never take a bust risk when a treble-safe route exists."}
-  ],
-  "39_2": [
-    {"type": "best", "route": "S7 → D16", "miss": "If T7 : D9 | If S19 : D10", "note": "Hit single 7 for a look at 32. An accidental treble leaves a dart at double 9, and dropping into 19 magically leaves double 10."},
-    {"type": "alt", "route": "S3 → D18", "miss": "If T3 : D15 | If S19 : D10", "note": "Hit single 3 for 36. An accidental treble gives you a dart at double 15."},
-    {"type": "avoid", "route": "S19 → D10", "miss": "If S3 : D18", "note": "Go for single 19 to leave double 10, but be warned: hitting the treble kills the turn."}
-  ],
-  "39_1": [{"type": "setup", "route": "S7", "miss": "If T7 : Leaves 18 | If S19 : Leaves 20", "note": "Aim at the 7s. A single leaves 32, a treble safely leaves 18, and a stray 19 perfectly leaves 20."}],
-  "38_3": [
-    {"type": "best", "route": "D19", "miss": "If S19 : S3 → D8", "note": "Aim straight for double 19. If you pull it into the single, you have 19 left, so just use a single 3 to leave double 8."},
-    {"type": "alt", "route": "S6 → D16", "miss": "If T6 : D10 | If S10 : D14", "note": "If you hate double 19, hit a single 6 to leave 32. An accidental treble gives you double 10, and dropping into 10 leaves a direct shot at double 14."}
-  ],
-  "38_2": [
-    {"type": "best", "route": "D19", "miss": "If S19 : Leaves 19", "note": "Fire at double 19. A single safely leaves 19 for next time."},
-    {"type": "alt", "route": "S6 → D16", "miss": "If T6 : D10 | If S10 : D14", "note": "Hit single 6 for a look at 32. A treble perfectly leaves double 10, and a 10 leaves double 14."}
-  ],
-  "38_1": [{"type": "best", "route": "D19", "miss": "If S19 : Leaves 19", "note": "One dart left, go straight for double 19."}],
-  "37_3": [
-    {"type": "best", "route": "S5 → D16", "miss": "If T5 : D11", "note": "The smartest math. A single 5 leaves 32. If you hit the treble, you safely get a dart at double 11. You have zero bust risk."},
-    {"type": "avoid", "route": "S17 → D10", "miss": "If S2 : S3 → D16", "note": "A total bust trap. A single 17 sets up double 10, but if you hit the treble 17, your turn is instantly dead."}
-  ],
-  "37_2": [
-    {"type": "best", "route": "S5 → D16", "miss": "If T5 : D11", "note": "Hit single 5 for 32. An accidental treble safely leaves a dart at double 11."},
-    {"type": "avoid", "route": "S17 → D10", "miss": "If S2 : Leaves 35", "note": "Go for single 17 to leave double 10, but an accidental treble ruins the checkout."}
-  ],
-  "37_1": [{"type": "setup", "route": "S5", "miss": "If T5 : Leaves 22", "note": "Aim at 5s. A single leaves 32, and a treble perfectly leaves 22."}],
-  "36_3": [{"type": "best", "route": "D18", "miss": "If S18 : D9", "note": "The best double on the right side of the board. Smash double 18. If you drop into the single, you still have two darts to hit double 9."}],
-  "36_2": [{"type": "best", "route": "D18", "miss": "If S18 : D9", "note": "Fire at double 18. A single cleanly leaves you a dart at double 9."}],
-  "36_1": [{"type": "best", "route": "D18", "miss": "If S18 : Leaves 18", "note": "One dart left, drill double 18 for the leg."}],
-  "35_3": [{"type": "best", "route": "S3 → D16", "miss": "If T3 : D13 | If S19 : D8", "note": "Hit single 3 to leave 32. If you hit the treble, you get a shot at double 13, and a stray single 19 perfectly leaves double 8."}],
-  "35_2": [{"type": "best", "route": "S3 → D16", "miss": "If T3 : D13 | If S19 : D8", "note": "Go for single 3. An accidental treble leaves double 13, and dropping into 19 magically leaves double 8."}],
-  "35_1": [{"type": "setup", "route": "S3", "miss": "If T3 : Leaves 26 | If S19 : Leaves 16", "note": "Throw at 3s. A single leaves 32, and an accidental 19 perfectly leaves 16."}],
-  "34_3": [
-    {"type": "best", "route": "D17", "miss": "If S17 : S1 → D8 | If S2 : D16", "note": "Aim straight at double 17. If you drop into the single, you have 17 left, so hit a single 1 to leave double 8."},
-    {"type": "alt", "route": "S2 → D16", "miss": "If T2 : D14 | If S15 : S3 → D8", "note": "If you want to avoid 17s, hit single 2 for 32. A treble perfectly leaves double 14."}
-  ],
-  "34_2": [
-    {"type": "best", "route": "D17", "miss": "If S17 : Leaves 17 | If S2 : D16", "note": "Fire at double 17. A single safely leaves 17, and a stray 2 wonderfully leaves a dart at 32."},
-    {"type": "alt", "route": "S2 → D16", "miss": "If T2 : D14", "note": "Hit single 2 to leave 32. An accidental treble leaves a dart at double 14."}
-  ],
-  "34_1": [{"type": "best", "route": "D17", "miss": "If S17 : Leaves 17 | If S2 : Leaves 32", "note": "One dart left, aim straight at double 17."}],
-  "33_3": [
-    {"type": "best", "route": "S1 → D16", "miss": "If T1 : D15", "note": "A simple single 1 leaves 32. If you hit the treble, you cleanly get a dart at double 15. You have zero bust risk."},
-    {"type": "avoid", "route": "S17 → D8", "miss": "If S2 : S15 → D8", "note": "A total trap route. Hitting a single 17 leaves 16, but an accidental treble 17 instantly busts your turn. Use the 1s."}
-  ],
-  "33_2": [
-    {"type": "best", "route": "S1 → D16", "miss": "If T1 : D15", "note": "Hit single 1 for a look at 32. An accidental treble safely leaves double 15."},
-    {"type": "avoid", "route": "S17 → D8", "miss": "If S2 : Leaves 31", "note": "Go for single 17 to leave double 8, but be warned: hitting the treble ruins the checkout."}
-  ],
-  "33_1": [{"type": "setup", "route": "S1", "miss": "If T1 : Leaves 30", "note": "Aim at 1s. A single leaves 32, and a treble perfectly leaves 30."}],
-  "32_3": [{"type": "best", "route": "D16", "miss": "If S16 : D8", "note": "The most important double on the board. Smash double 16. If you miss inside, you instantly get two darts at double 8."}],
-  "32_2": [{"type": "best", "route": "D16", "miss": "If S16 : D8", "note": "Fire at double 16. A single cleanly leaves you a direct shot at double 8."}],
-  "32_1": [{"type": "best", "route": "D16", "miss": "If S16 : Leaves 16", "note": "The most important double on the board. Hit it for the leg."}],
-  "31_3": [
-    {"type": "best", "route": "S7 → D12", "miss": "If T7 : D5 | If S19 : D6", "note": "The smartest path. A single 7 leaves 24, a treble leaves double 5, and a sloppy single 19 perfectly leaves double 6."},
-    {"type": "avoid", "route": "S15 → D8", "miss": "If S10 : S1 → D10", "note": "A massive bust trap. A single 15 sets up 16, but a treble 15 immediately kills the checkout."}
-  ],
-  "31_2": [
-    {"type": "best", "route": "S7 → D12", "miss": "If T7 : D5 | If S19 : D6", "note": "Go for single 7 to leave 24. An accidental treble leaves double 5, and a stray 19 magically leaves double 6."},
-    {"type": "avoid", "route": "S15 → D8", "miss": "If S10 : Leaves 21", "note": "Hit single 15 for 16, but be aware that the treble ruins the turn entirely."}
-  ],
-  "31_1": [{"type": "setup", "route": "S7", "miss": "If T7 : Leaves 10 | If S19 : Leaves 12", "note": "Aim at 7s. A single leaves 24, and a stray 19 perfectly leaves 12."}],
-  "30_3": [
-    {"type": "best", "route": "D15", "miss": "If S15 : S7 → D4", "note": "Aim straight for double 15. If you miss inside, you have 15 left, so drop a single 7 for double 4."},
-    {"type": "alt", "route": "S6 → D12", "miss": "If T6 : D6 | If S10 : D10", "note": "An elite treble-safe alternative. A single 6 leaves 24, and a treble flawlessly leaves double 6."},
-    {"type": "avoid", "route": "S10 → D10", "miss": "If S15 : S7 → D4", "note": "A massive bust trap. A single 10 leaves double 10, but a treble 10 immediately busts the turn."}
-  ],
-  "30_2": [
-    {"type": "best", "route": "D15", "miss": "", "note": "Fire at double 15, but be warned: missing inside into the single 15 kills the turn because 15 cannot be checked out with one dart."},
-    {"type": "alt", "route": "S6 → D12", "miss": "If T6 : D6", "note": "Hit single 6 for 24. An accidental treble safely leaves double 6."},
-    {"type": "avoid", "route": "S10 → D10", "miss": "", "note": "Hitting the treble completely busts the checkout."}
-  ],
-  "30_1": [{"type": "best", "route": "D15", "miss": "If S15 : Leaves 15", "note": "One dart left, hit double 15 for the leg."}],
-  "29_3": [
-    {"type": "best", "route": "S9 → D10", "miss": "If T9 : D1 | If S14 : S7 → D4", "note": "The smartest path. A single 9 leaves double 10, and an accidental treble perfectly leaves double 1."},
-    {"type": "alt", "route": "S5 → D12", "miss": "If T5 : D7 | If S20 : S1 → D4", "note": "A great parity option. A single 5 leaves 24, and a treble safely leaves double 7."},
-    {"type": "avoid", "route": "S13 → D8", "miss": "If S4 : S9 → D8", "note": "A fatal chart trap. A single 13 leaves 16, but an accidental treble 13 (39 points) instantly busts the score."}
-  ],
-  "29_2": [
-    {"type": "best", "route": "S9 → D10", "miss": "If T9 : D1", "note": "Hit single 9 for a look at double 10. A treble safely leaves double 1."},
-    {"type": "avoid", "route": "S13 → D8", "miss": "", "note": "Go for single 13, but know that a treble instantly busts your turn."}
-  ],
-  "29_1": [{"type": "setup", "route": "S9", "miss": "If T9 : Leaves 2", "note": "Aim at the 9s. A single leaves 20, and an accidental treble leaves 2."}],
-  "28_3": [{"type": "best", "route": "D14", "miss": "If S14 : D7", "note": "Aim straight at double 14. A miss inside cleanly leaves you a dart at double 7."}],
-  "28_2": [{"type": "best", "route": "D14", "miss": "If S14 : D7", "note": "Fire at double 14. A single gives you an immediate shot at double 7."}],
-  "28_1": [{"type": "best", "route": "D14", "miss": "If S14 : Leaves 14", "note": "One dart left, drill double 14 to win it."}],
-  "27_3": [
-    {"type": "best", "route": "S7 → D10", "miss": "If T7 : D3 | If S19 : S4 → D2", "note": "A single 7 leaves double 10, and hitting the treble actually saves the turn by leaving double 3. Zero bust risk."},
-    {"type": "avoid", "route": "S11 → D8", "miss": "If S14 : S5 → D4", "note": "A single 11 leaves 16, but if your dart slips into the treble 11 (33), you bust the turn immediately."}
-  ],
-  "27_2": [
-    {"type": "best", "route": "S7 → D10", "miss": "If T7 : D3 | If S19 : D4", "note": "Go for single 7. An accidental treble leaves double 3, and dropping into 19 perfectly leaves double 4."},
-    {"type": "avoid", "route": "S11 → D8", "miss": "", "note": "Hitting the treble 11 busts the turn entirely."}
-  ],
-  "27_1": [{"type": "setup", "route": "S7", "miss": "If T7 : Leaves 6", "note": "Aim at 7s. A single safely leaves 20, and a treble leaves 6."}],
-  "26_3": [
-    {"type": "best", "route": "D13", "miss": "If S13 : S5 → D4", "note": "Go straight for double 13. If you miss into the single, you have 13 left, meaning a single 5 sets up double 4."},
-    {"type": "alt", "route": "S6 → D10", "miss": "If T6 : D4 | If S10 : S8 → D4", "note": "An elite treble-safe alternative. A single 6 leaves 20, and a treble flawlessly leaves double 4."},
-    {"type": "avoid", "route": "S10 → D8", "miss": "If S15 : S3 → D4", "note": "If you hit single 10, you leave 16. However, hitting the treble 10 busts the checkout entirely."}
-  ],
-  "26_2": [
-    {"type": "best", "route": "D13", "miss": "", "note": "Fire at double 13, but a miss inside leaves an unfinishable 13, killing the turn."},
-    {"type": "alt", "route": "S6 → D10", "miss": "If T6 : D4 | If S10 : D8", "note": "Hit single 6. A treble leaves double 4, and drifting into 10 perfectly leaves double 8."},
-    {"type": "avoid", "route": "S10 → D8", "miss": "", "note": "The treble 10 immediately busts your score."}
-  ],
-  "26_1": [{"type": "best", "route": "D13", "miss": "If S13 : Leaves 13", "note": "One dart left, hit double 13 for the leg."}],
-  "25_3": [
-    {"type": "best", "route": "S5 → D10", "miss": "If T5 : D5 | If S20 : S1 → D2", "note": "The only mathematically sound path. A single 5 leaves 20, and an accidental treble safely leaves double 5. Zero bust risk."},
-    {"type": "avoid", "route": "S9 → D8", "miss": "If S14 : S3 → D4", "note": "A brutal chart trap. A single 9 leaves 16, but an accidental treble 9 (27) instantly busts your turn."},
-    {"type": "avoid", "route": "S17 → D4", "miss": "If S2 : S7 → D8", "note": "A single 17 leaves 8, but the treble 17 completely busts the score."}
-  ],
-  "25_2": [
-    {"type": "best", "route": "S5 → D10", "miss": "If T5 : D5", "note": "Hit single 5. A treble smoothly gives you a dart at double 5."},
-    {"type": "avoid", "route": "S9 → D8", "miss": "", "note": "A treble busts the turn. Dropping into 14 safely leaves an unfinishable 11."}
-  ],
-  "25_1": [{"type": "setup", "route": "S5", "miss": "If T5 : Leaves 10", "note": "Aim at the 5s. A single leaves 20, and a treble perfectly leaves 10."}],
-  "24_3": [{"type": "best", "route": "D12", "miss": "If S12 : D6", "note": "Smash double 12. If you miss inside, you instantly get a dart at double 6."}],
-  "24_2": [{"type": "best", "route": "D12", "miss": "If S12 : D6", "note": "Fire at double 12. A single cleanly leaves you a direct shot at double 6."}],
-  "24_1": [{"type": "best", "route": "D12", "miss": "If S12 : Leaves 12", "note": "One dart left, hit double 12."}],
-  "23_3": [{"type": "best", "route": "S7 → D8", "miss": "If T7 : D1 | If S19 : D2", "note": "The smartest odd number on the board. A single 7 leaves 16. A treble safely leaves double 1, and missing into the 19 miraculously leaves double 2."}],
-  "23_2": [{"type": "best", "route": "S7 → D8", "miss": "If T7 : D1 | If S19 : D2", "note": "Go for single 7. Even an accidental treble or a bad miss into 19 still leaves a dart at a double."}],
-  "23_1": [{"type": "setup", "route": "S7", "miss": "If T7 : Leaves 2 | If S19 : Leaves 4", "note": "Aim at the 7s. A single leaves 16, a treble leaves 2, and a 19 leaves 4. You literally can't mess this up."}],
-  "22_3": [
-    {"type": "best", "route": "D11", "miss": "If S11 : S3 → D4", "note": "Aim straight for double 11. If you drop into the single, you have 11 left, so hit a single 3 for double 4."},
-    {"type": "alt", "route": "S6 → D8", "miss": "If T6 : D2 | If S10 : D6", "note": "If you absolutely refuse to shoot at double 11, hit a single 6 to leave 16. A treble nicely leaves double 2, and a stray 10 leaves double 6."}
-  ],
-  "22_2": [
-    {"type": "best", "route": "D11", "miss": "", "note": "Fire at double 11. A miss inside into the single 11 leaves a dead turn."},
-    {"type": "alt", "route": "S6 → D8", "miss": "If T6 : D2 | If S10 : D6", "note": "Hit single 6 for 16. A treble leaves double 2, and a bad miss into 10 gives you a shot at double 6."}
-  ],
-  "22_1": [{"type": "best", "route": "D11", "miss": "If S11 : Leaves 11", "note": "One dart left, hit double 11 for the leg."}],
-  "21_3": [
-    {"type": "best", "route": "S5 → D8", "miss": "If T5 : D3", "note": "Hit single 5 to leave 16, and an accidental treble leaves double 3. Just be very careful not to miss into the 20, because that leaves 1, which ends your turn."},
-    {"type": "avoid", "route": "S17 → D2", "miss": "If S3 : D9", "note": "A total trap. A single 17 leaves double 2, but a treble 17 instantly busts the score."}
-  ],
-  "21_2": [
-    {"type": "best", "route": "S5 → D8", "miss": "If T5 : D3", "note": "Go for single 5 to leave 16. A treble safely leaves double 3, but a single 20 busts the turn by leaving 1."},
-    {"type": "avoid", "route": "S17 → D2", "miss": "", "note": "Hitting the treble 17 completely busts the turn."}
-  ],
-  "21_1": [{"type": "setup", "route": "S5", "miss": "If T5 : Leaves 6", "note": "Aim at the 5s. A single leaves 16. Do not pull it into the 20."}],
-  "20_3": [{"type": "best", "route": "D10", "miss": "If S10 : D5", "note": "Smash double 10. If you miss inside, you get a clean shot at double 5."}],
-  "20_2": [{"type": "best", "route": "D10", "miss": "If S10 : D5", "note": "Fire at double 10. An inside miss cleanly leaves you double 5."}],
-  "20_1": [{"type": "best", "route": "D10", "miss": "If S10 : Leaves 10", "note": "One dart left. Hit double 10."}],
-  "19_3": [
-    {"type": "best", "route": "S3 → D8", "miss": "If T3 : D5", "note": "The mathematically perfect route. A single 3 leaves 16, and an accidental treble safely leaves double 5. Zero bust risk."},
-    {"type": "avoid", "route": "S11 → D4", "miss": "", "note": "A fatal chart trap. A single 11 leaves double 4, but a treble 11 (33) instantly busts your score."}
-  ],
-  "19_2": [
-    {"type": "best", "route": "S3 → D8", "miss": "If T3 : D5", "note": "Hit single 3 for 16. An accidental treble still gives you a throw at double 5."},
-    {"type": "avoid", "route": "S11 → D4", "miss": "", "note": "Go for single 11, but hitting the treble completely ruins the checkout."}
-  ],
-  "19_1": [{"type": "setup", "route": "S3", "miss": "If T3 : Leaves 10", "note": "Aim at the 3s. A single leaves 16, and a treble perfectly leaves 10."}],
-  "18_3": [{"type": "best", "route": "D9", "miss": "If S9 : S1 → D4", "note": "Go straight for double 9. If you miss inside, you have 9 left, so just drop a single 1 to leave double 4."}],
-  "18_2": [{"type": "best", "route": "D9", "miss": "", "note": "Fire at double 9, but be warned: missing inside into the single 9 mathematically kills your turn because 9 cannot be checked out with one dart."}],
-  "18_1": [{"type": "best", "route": "D9", "miss": "If S9 : Leaves 9", "note": "One dart left, hit double 9 to win it."}],
-  "17_3": [
-    {"type": "best", "route": "S1 → D8", "miss": "If T1 : D7", "note": "The safest odd route. Hit a single 1 to leave 16. If you slip into the treble, you still get a dart at double 7."},
-    {"type": "avoid", "route": "S9 → D4", "miss": "", "note": "A single 9 leaves 8, but a treble 9 (27) immediately busts your score."}
-  ],
-  "17_2": [
-    {"type": "best", "route": "S1 → D8", "miss": "If T1 : D7", "note": "Go for single 1. An accidental treble beautifully leaves double 7."},
-    {"type": "avoid", "route": "S9 → D4", "miss": "", "note": "Hitting the treble 9 busts your turn entirely."}
-  ],
-  "17_1": [{"type": "setup", "route": "S1", "miss": "If T1 : Leaves 14", "note": "Aim at 1s. A single leaves 16, and a treble safely leaves 14."}],
-  "16_3": [{"type": "best", "route": "D8", "miss": "If S8 : D4", "note": "Smash double 8. If you miss inside, you immediately get a dart at double 4."}],
-  "16_2": [{"type": "best", "route": "D8", "miss": "If S8 : D4", "note": "Fire at double 8. A single gives you a direct shot at double 4."}],
-  "16_1": [{"type": "best", "route": "D8", "miss": "If S8 : Leaves 8", "note": "One dart left, hit double 8."}],
-  "15_3": [
-    {"type": "best", "route": "S3 → D6", "miss": "If T3 : D3", "note": "The smartest path. A single 3 leaves 12 (D6), and an accidental treble perfectly leaves double 3. Zero bust risk."},
-    {"type": "avoid", "route": "S7 → D4", "miss": "", "note": "A brutal bust trap. A single 7 leaves 8, but if you hit the treble 7 (21), you instantly bust the turn."}
-  ],
-  "15_2": [
-    {"type": "best", "route": "S3 → D6", "miss": "If T3 : D3", "note": "Go for single 3. An accidental treble securely leaves a dart at double 3."},
-    {"type": "avoid", "route": "S7 → D4", "miss": "", "note": "Hitting the treble 7 completely ruins the checkout."}
-  ],
-  "15_1": [{"type": "setup", "route": "S3", "miss": "If T3 : Leaves 6", "note": "Aim at the 3s. A single leaves 12, and a treble safely leaves 6."}],
-  "14_3": [{"type": "best", "route": "D7", "miss": "If S7 : S3 → D2", "note": "Aim straight for double 7. If you drop into the single, hit a single 3 for double 2."}],
-  "14_2": [{"type": "best", "route": "D7", "miss": "", "note": "Fire at double 7. A miss inside into the single 7 is a dead turn."}],
-  "14_1": [{"type": "best", "route": "D7", "miss": "If S7 : Leaves 7", "note": "One dart left, hit double 7 to take the leg."}],
-  "13_3": [
-    {"type": "best", "route": "S1 → D6", "miss": "If T1 : D5", "note": "The only treble-safe route. A single 1 leaves 12, and an accidental treble perfectly leaves double 5."},
-    {"type": "avoid", "route": "S5 → D4", "miss": "", "note": "A massive trap. Hit single 5 to leave 8, but if you pull it into the treble 5 (15), you bust the score."}
-  ],
-  "13_2": [
-    {"type": "best", "route": "S1 → D6", "miss": "If T1 : D5", "note": "Hit single 1 for 12. An accidental treble beautifully leaves double 5."},
-    {"type": "avoid", "route": "S5 → D4", "miss": "", "note": "Go for single 5, but hitting the treble completely busts the checkout."}
-  ],
-  "13_1": [{"type": "setup", "route": "S1", "miss": "If T1 : Leaves 10", "note": "Aim at 1s. A single leaves 12, and a treble perfectly leaves 10."}],
-  "12_3": [{"type": "best", "route": "D6", "miss": "If S6 : D3", "note": "Smash double 6. If you miss inside, you get a clean dart at double 3."}],
-  "12_2": [{"type": "best", "route": "D6", "miss": "If S6 : D3", "note": "Fire at double 6. A single instantly leaves you double 3."}],
-  "12_1": [{"type": "best", "route": "D6", "miss": "If S6 : Leaves 6", "note": "One dart left, drill double 6."}],
-  "11_3": [
-    {"type": "best", "route": "S3 → D4", "miss": "If T3 : D1", "note": "The treble-safe standard. A single 3 leaves 8, and an accidental treble leaves double 1."},
-    {"type": "avoid", "route": "S7 → D2", "miss": "", "note": "Hit single 7 for double 2, but a treble 7 (21) completely busts your turn."}
-  ],
-  "11_2": [
-    {"type": "best", "route": "S3 → D4", "miss": "If T3 : D1", "note": "Go for single 3. An accidental treble leaves a throw at double 1."},
-    {"type": "avoid", "route": "S7 → D2", "miss": "", "note": "The treble 7 immediately busts the score."}
-  ],
-  "11_1": [{"type": "setup", "route": "S3", "miss": "If T3 : Leaves 2", "note": "Aim at the 3s. A single leaves 8, and a treble perfectly leaves 2."}],
-  "10_3": [{"type": "best", "route": "D5", "miss": "If S5 : S1 → D2", "note": "Go straight for double 5. If you miss inside, you have 5 left, so hit a single 1 for double 2."}],
-  "10_2": [{"type": "best", "route": "D5", "miss": "", "note": "Fire at double 5, but missing inside into the single 5 mathematically kills your turn."}],
-  "10_1": [{"type": "best", "route": "D5", "miss": "If S5 : Leaves 5", "note": "One dart left, hit double 5."}],
-  "9_3": [{"type": "best", "route": "S1 → D4", "miss": "If T1 : D3", "note": "Hit a single 1 to leave 8. If you slip into the treble, you still cleanly get a dart at double 3."}],
-  "9_2": [{"type": "best", "route": "S1 → D4", "miss": "If T1 : D3", "note": "Go for single 1 to leave double 4. A treble beautifully leaves double 3."}],
-  "9_1": [{"type": "setup", "route": "S1", "miss": "If T1 : Leaves 6", "note": "Aim at 1s. A single leaves 8, and a treble leaves 6."}],
-  "8_3": [{"type": "best", "route": "D4", "miss": "If S4 : D2", "note": "Smash double 4. A miss inside cleanly leaves you a dart at double 2."}],
-  "8_2": [{"type": "best", "route": "D4", "miss": "If S4 : D2", "note": "Fire at double 4. A single gives you an immediate shot at double 2."}],
-  "8_1": [{"type": "best", "route": "D4", "miss": "If S4 : Leaves 4", "note": "One dart left, drill double 4."}],
-  "7_3": [
-    {"type": "best", "route": "S1 → D3", "miss": "If T1 : D2", "note": "The only mathematically sound path. A single 1 leaves 6 (D3), and a treble 1 safely leaves 4 (D2). You have zero bust risk."},
-    {"type": "avoid", "route": "S3 → D2", "miss": "", "note": "A massive bust trap. A single 3 leaves double 2, but a treble 3 (9) immediately busts the checkout. Use the 1s."}
-  ],
-  "7_2": [
-    {"type": "best", "route": "S1 → D3", "miss": "If T1 : D2", "note": "Hit single 1 for double 3. An accidental treble perfectly leaves double 2."},
-    {"type": "avoid", "route": "S3 → D2", "miss": "", "note": "A treble 3 busts the turn."}
-  ],
-  "7_1": [{"type": "setup", "route": "S1", "miss": "If T1 : Leaves 4", "note": "Aim at the 1s. A single leaves 6, and a treble perfectly leaves 4."}],
-  "6_3": [{"type": "best", "route": "D3", "miss": "If S3 : S1 → D1", "note": "Go straight for double 3. If you miss inside, hit a single 1 for double 1."}],
-  "6_2": [{"type": "best", "route": "D3", "miss": "", "note": "Fire at double 3. An inside miss into the single 3 leaves a dead turn."}],
-  "6_1": [{"type": "best", "route": "D3", "miss": "If S3 : Leaves 3", "note": "One dart left, hit double 3."}],
-  "5_3": [{"type": "best", "route": "S1 → D2", "miss": "If T1 : D1", "note": "Hit single 1 to leave double 2. A treble perfectly leaves double 1."}],
-  "5_2": [{"type": "best", "route": "S1 → D2", "miss": "If T1 : D1", "note": "Go for single 1. An accidental treble still gives you a throw at double 1."}],
-  "5_1": [{"type": "setup", "route": "S1", "miss": "If T1 : Leaves 2", "note": "Aim at 1s. A single leaves 4, and a treble leaves 2."}],
-  "4_3": [{"type": "best", "route": "D2", "miss": "If S2 : D1", "note": "Smash double 2. If you miss inside, you get a clean dart at double 1."}],
-  "4_2": [{"type": "best", "route": "D2", "miss": "If S2 : D1", "note": "Fire at double 2. A single gives you a direct shot at double 1."}],
-  "4_1": [{"type": "best", "route": "D2", "miss": "If S2 : Leaves 2", "note": "One dart left, drill double 2."}],
-  "3_3": [{"type": "best", "route": "S1 → D1", "miss": "", "note": "Hit single 1 to leave double 1. A treble 1 busts your turn."}],
-  "3_2": [{"type": "best", "route": "S1 → D1", "miss": "", "note": "Go for single 1. Hitting the treble ruins the checkout."}],
-  "3_1": [{"type": "setup", "route": "S1", "miss": "", "note": "Aim at the 1s. A single leaves 2. Don't hit the treble."}],
-  "2_3": [{"type": "best", "route": "D1", "miss": "", "note": "Madhouse. Aim at double 1. Missing inside busts your turn."}],
-  "2_2": [{"type": "best", "route": "D1", "miss": "", "note": "Fire at double 1. An inside miss ruins the checkout."}],
-  "2_1": [{"type": "best", "route": "D1", "miss": "", "note": "One dart left. Hit double 1."}]
-};
 
 // Initialize Application
 setDarts(3);

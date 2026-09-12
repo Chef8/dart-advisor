@@ -1,6 +1,6 @@
 # Software & Content License
 
-Copyright (c) 2026 John Phillip Amarante. All rights reserved.
+Copyright (c) 2026 John Amarante. All rights reserved.
 
 This project contains two distinct protected components: Application Engine Code and Proprietary Tactical Content.
 
